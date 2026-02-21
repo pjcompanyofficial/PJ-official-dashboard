@@ -230,6 +230,25 @@
 
         .approve-text { font-size: 9px; color: var(--text-dim); margin-top: 70px; line-height: 1.2; }
         .badge { font-size: 10px; background: var(--orange); color: black; padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-left: 10px; }
+
+        /* PLUS BUTTON (CII) */
+        #plusBtn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg,#007bff,#00d4ff);
+            color: #fff;
+            font-size: 32px;
+            display: none; /* show only when CII open */
+            z-index: 9999;
+            box-shadow: 0 10px 30px rgba(0,140,255,0.2);
+            cursor: pointer;
+        }
+        #panelRoot { z-index: 10000; }
     </style>
 </head>
 <body>
@@ -249,6 +268,7 @@
     <div class="menu-btn" onclick="openPage('receipt')">Receive & Bill</div>
 </div>
 
+<!-- (all other screens unchanged) -->
 <!-- PRODUCT MENU -->
 <div id="product" class="screen">
     <div class="title">Product Details & Rate</div>
@@ -466,6 +486,12 @@
     <div class="approve-text">Approved By Management</div>
 </div>
 
+<!-- PLUS BUTTON (placed in DOM so scripts can reliably find it) -->
+<button id="plusBtn" title="Add CII Image">+</button>
+
+<!-- PANEL ROOT placeholder -->
+<div id="panelRoot"></div>
+
 <script>
     let historyStack = ['home'];
 
@@ -473,14 +499,21 @@
         if(id === "billHistory") loadBills();
         if(id === "billGen") {
             document.getElementById('billDate').innerText = new Date().toLocaleDateString();
-         document.getElementById('billID').innerText = Math.floor(1000 + Math.random() * 9000);
+            document.getElementById('billID').innerText = Math.floor(1000 + Math.random() * 9000);
         }
 
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
+        const dest = document.getElementById(id);
+        if (dest) dest.classList.add('active');
+
+        // Show/hide back button
         document.getElementById('backBtn').style.display = (id === 'home') ? 'none' : 'block';
         historyStack.push(id);
         window.scrollTo(0, 0);
+
+        // Show plus button only when CII is active
+        const plus = document.getElementById('plusBtn');
+        if (plus) plus.style.display = (id === 'cii') ? 'block' : 'none';
     }
 
     function back() {
@@ -490,6 +523,9 @@
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(id).classList.add('active');
             document.getElementById('backBtn').style.display = (id === 'home') ? 'none' : 'block';
+            // Hide plus if not on CII
+            const plus = document.getElementById('plusBtn');
+            if (plus) plus.style.display = (id === 'cii') ? 'block' : 'none';
         }
     }
 
@@ -638,7 +674,7 @@
 
 <!-- CII CLOUD MODULE (inlined) -->
 <script type="module">
-/* cii-cloud module merged inline (from your uploaded file) */
+/* cii-cloud module merged inline (adapted to use the DOM plus button) */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject }
 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
@@ -663,53 +699,21 @@ if (window.emailjs && window.emailjs.init) {
   console.warn("emailjs not available yet - init skipped (it should be available because we loaded it before this module).");
 }
 
-const root = document.body;
+/* Hook into the DOM: use the plus button already placed in HTML */
+const plus = document.getElementById('plusBtn');
 
-/* LOADER */
-const loader = document.createElement("div");
-loader.innerHTML = `<div id="bar"></div>`;
-Object.assign(loader.style,{
-  position:"fixed",top:0,left:0,width:"100%",height:"4px",
-  background:"#222",display:"none",zIndex:9999
-});
-loader.firstChild.style.height="100%";
-loader.firstChild.style.background="cyan";
-root.appendChild(loader);
-
-/* PLUS BTN (hidden by default) */
-const plus = document.createElement("button");
-plus.innerHTML = "+";
-Object.assign(plus.style,{
-  position:"fixed",top:"20px",right:"20px",
-  width:"60px",height:"60px",
-  borderRadius:"50%",border:"none",
-  fontSize:"32px",color:"#fff",
-  background:"linear-gradient(135deg,#007bff,#00d4ff)",
-  boxShadow:"0 0 20px rgba(0,140,255,.6)",
-  zIndex:9999,display:"none"
-});
-root.appendChild(plus);
-
-/* SHOW ONLY IN CII PAGE */
-const observer = new MutationObserver(()=>{
-  let cii = document.getElementById("cii");
-  if(!cii) return;
-  plus.style.display = cii.classList.contains("active") ? "block":"none";
-});
-observer.observe(document.body,{attributes:true,subtree:true});
-
-/* PANEL */
+/* PANEL (re-usable) */
 const panel = document.createElement("div");
+panel.id = "ciiPanel";
 Object.assign(panel.style,{
   position:"fixed",top:"50%",left:"50%",
   transform:"translate(-50%,-50%) scale(0)",
   background:"#111",padding:"30px",
   borderRadius:"20px",color:"#fff",
   boxShadow:"0 0 30px cyan",
-  zIndex:9999,transition:".3s",
-  textAlign:"center",width:"300px"
+  zIndex:10000,transition:".22s",
+  textAlign:"center",width:"320px"
 });
-
 panel.innerHTML=`
 <h3 style="margin:0 0 8px 0">Add Image</h3>
 <input id="titleInput" placeholder="Title" style="padding:10px;width:90%;margin:10px;border-radius:10px;border:none">
@@ -723,13 +727,32 @@ panel.innerHTML=`
 <br>
 <button id="closePanel" style="padding:8px 12px;border-radius:8px;border:none;cursor:pointer;background:#333;color:#fff">Close</button>
 `;
+document.body.appendChild(panel);
 
-root.appendChild(panel);
 window.panelHide = () => panel.style.transform = "translate(-50%,-50%) scale(0)";
-plus.onclick = () => panel.style.transform = "translate(-50%,-50%) scale(1)";
+window.panelShow = () => panel.style.transform = "translate(-50%,-50%) scale(1)";
+
+/* Wire plus button to open panel (if plus exists) */
+if (plus) {
+  plus.addEventListener('click', () => {
+    panelShow();
+  });
+}
+
+/* close handler */
 document.getElementById("closePanel").onclick = () => panelHide();
 
-/* LOADER FUNC */
+/* LOADER (visual progress bar) */
+const loader = document.createElement("div");
+loader.innerHTML = `<div id="bar"></div>`;
+Object.assign(loader.style,{
+  position:"fixed",top:0,left:0,width:"100%",height:"4px",
+  background:"#222",display:"none",zIndex:9999
+});
+loader.firstChild.style.height="100%";
+loader.firstChild.style.background="cyan";
+document.body.appendChild(loader);
+
 function start(){
   loader.style.display="block";
   loader.firstChild.style.width="0%";
@@ -741,19 +764,19 @@ function start(){
   },100);
 }
 
-/* LOAD GALLERY */
+/* LOAD GALLERY: injects cards into #cii */
 async function loadGallery(){
   let box = document.getElementById("cii");
   if(!box) return;
 
   document.querySelectorAll(".cardCII").forEach(e=>e.remove());
-  document.getElementById("deleteList").innerHTML="";
+  const deleteList = document.getElementById("deleteList");
+  if (deleteList) deleteList.innerHTML="";
 
   try {
     let snap = await getDocs(collection(db,"cii"));
     snap.forEach(d=>{
       let data=d.data();
-
       let div=document.createElement("div");
       div.className="cardCII";
       div.innerHTML=`
@@ -766,18 +789,21 @@ async function loadGallery(){
       </div>`;
       box.appendChild(div);
 
-      /* DELETE LIST */
-      let item=document.createElement("div");
-      item.innerHTML=`
-      ${data.title}<br>
-      <button style="background:red;color:#fff;border:none;padding:6px 15px;border-radius:8px;margin-top:6px"
-        onclick="window.del && window.del('${d.id}','${data.file}')">Delete</button><hr>`;
-      document.getElementById("deleteList").appendChild(item);
+      if (deleteList) {
+        let item=document.createElement("div");
+        item.innerHTML=`
+        ${data.title}<br>
+        <button style="background:red;color:#fff;border:none;padding:6px 15px;border-radius:8px;margin-top:6px"
+          onclick="window.del && window.del('${d.id}','${data.file}')">Delete</button><hr>`;
+        deleteList.appendChild(item);
+      }
     });
   } catch(err) {
     console.error("Error loading gallery:", err);
   }
 }
+
+/* initial gallery load */
 loadGallery();
 
 /* UPLOAD */
@@ -805,7 +831,7 @@ document.getElementById("postBtn").onclick=async()=>{
   }
 };
 
-/* DELETE */
+/* DELETE (with OTP via emailjs) */
 window.del = async(id,file) => {
   if(!confirm("Delete this image?")) return;
 
@@ -817,7 +843,6 @@ window.del = async(id,file) => {
     await emailjs.send("Service_4mpzhc6","template_1rgmrr5",{otp});
   } catch(err) {
     console.warn("emailjs send failed:", err);
-    // continue but alert user
     alert("OTP send failed (emailjs). Deletion will be blocked for security.");
     return;
   }
