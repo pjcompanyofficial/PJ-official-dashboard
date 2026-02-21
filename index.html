@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PJ Official Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- html2canvas for Bill Image Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --black: #0a0a0a;
+            --dark-grey: #121212;
+            --orange: #ff7a00;
+            --orange-dim: rgba(255, 122, 0, 0.15);
+            --border: #222;
+            --text-main: #ffffff;
+            --text-dim: #aaa;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            background: var(--black);
+            color: var(--text-main);
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Circular Watermark Background */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 50%; 
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px; 
+            height: 300px;
+            background: url('https://i.postimg.cc/0QHnqDC4/1771519114070.jpg') center/cover no-repeat;
+            opacity: .07;
+            z-index: -1;
+            pointer-events: none;
+            border-radius: 50%;
+            filter: grayscale(100%);
+        }
+
+        header {
+            padding: 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .screen {
+            display: none;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+            animation: slideIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .active { display: block; }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .menu-btn {
+            background: linear-gradient(145deg, #181818, #0a0a0a);
+            border: 1px solid var(--border);
+            padding: 18px;
+            margin: 12px 0;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            text-decoration: none;
+            color: white;
+        }
+
+        .menu-btn:active {
+            transform: scale(0.98);
+            border-color: var(--orange);
+        }
+
+        .menu-btn::after {
+            content: '→';
+            color: var(--orange);
+            font-weight: 700;
+        }
+
+        .back {
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--orange);
+            z-index: 101;
+        }
+
+        .title {
+            text-align: center;
+            font-size: 20px;
+            margin: 10px 0 25px 0;
+            font-weight: 600;
+            color: var(--orange);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .card {
+            background: var(--dark-grey);
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin: 15px 0;
+            border: 1px solid #1f1f1f;
+        }
+
+        .card.flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card span:last-child {
+            font-weight: 700;
+            color: var(--orange);
+        }
+
+        /* Calculator Styles */
+        .calc-container {
+            background: var(--dark-grey);
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid var(--border);
+        }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: white;
+            font-family: inherit;
+            font-size: 16px;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+        }
+
+        input:focus { outline: none; border-color: var(--orange); }
+
+        .action-btn {
+            background: var(--orange);
+            color: black;
+            border: none;
+            padding: 15px;
+            border-radius: 12px;
+            width: 100%;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            text-transform: uppercase;
+            margin: 10px 0;
+        }
+
+        /* Bill System UI */
+        .bill-box {
+            background: #fff;
+            color: #000;
+            padding: 20px;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        
+        .bill-box::before {
+            content: "";
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70%; height: 70%;
+            background: url('https://i.postimg.cc/L8vWhY4Y/Screenshot-20260221-204626-Photos-and-videos.png') center/contain no-repeat;
+            opacity: 0.12;
+            pointer-events: none;
+        }
+
+        .billRow { margin-bottom: 10px; position: relative; padding: 10px; background: #f9f9f9; border-radius: 8px; border-left: 4px solid var(--orange); }
+        .billRow input { background: #fff; color: #000; border: 1px solid #ccc; margin-bottom: 5px; padding: 10px; font-size: 14px; }
+        .billRow hr { border: 0; border-top: 1px solid #eee; margin: 10px 0; }
+
+        /* CII Page Styles */
+        .imgBox { margin: 25px 0; text-align: center; }
+        .imgBox img { max-width: 100%; border-radius: 14px; border: 1px solid #333; margin-bottom: 12px; transition: transform 0.3s ease; }
+        .imgBox img:hover { transform: scale(1.02); }
+        .preview { width:100%; border-radius:12px; margin-top:10px; box-shadow:0 0 10px rgba(0,0,0,0.2); }
+        .download-btn { margin-top:10px; padding:12px 18px; border:none; background:linear-gradient(45deg,#ff7a00,#ff9a00); color:white; border-radius:8px; font-weight:bold; cursor:pointer; width: 100%; }
+
+        /* Floating Approval Animation */
+        .float-box { position: fixed; right: 15px; bottom: 20px; width: 80px; text-align: center; }
+        .circle { width: 60px; height: 60px; border-radius: 50%; overflow: hidden; border: 2px solid var(--orange); position: absolute; right: -120px; background: #000; animation: slide 12s infinite; }
+        .circle img { width: 100%; height: 100%; object-fit: cover; }
+        .circle:nth-child(1) { animation-delay: 0s }
+        .circle:nth-child(2) { animation-delay: 2.4s }
+        .circle:nth-child(3) { animation-delay: 4.8s }
+        .circle:nth-child(4) { animation-delay: 7.2s }
+        .circle:nth-child(5) { animation-delay: 9.6s }
+
+        @keyframes slide {
+            0% { right: -120px; opacity: 0; transform: scale(0.5); }
+            5% { right: 0; opacity: 1; transform: scale(1); }
+            15% { right: 0; opacity: 1; transform: scale(1); }
+            20% { right: -120px; opacity: 0; transform: scale(0.5); }
+            100% { right: -120px; opacity: 0; }
+        }
+
+        .approve-text { font-size: 9px; color: var(--text-dim); margin-top: 70px; line-height: 1.2; }
+        .badge { font-size: 10px; background: var(--orange); color: black; padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-left: 10px; }
+    </style>
+</head>
+<body>
+
+<header id="mainHeader">PJ Official Dashboard</header>
+<div id="backBtn" class="back" onclick="back()" style="display:none">←</div>
+
+<!-- HOME -->
+<div id="home" class="screen active">
+    <div class="menu-btn" onclick="openPage('product')">Product Details & Rate</div>
+    <div class="menu-btn" onclick="openPage('measure')">Flutes Measurement</div>
+    <div class="menu-btn" onclick="openPage('calcPolish')">Polish Rate Calculator <span class="badge">UPDATED</span></div>
+    <div class="menu-btn" onclick="checkPassword('cii')">CII <span class="badge">SECURE</span></div>
+    
+    <div style="height: 1px; background: var(--border); margin: 30px 0;"></div>
+    
+    <div class="menu-btn" onclick="openPage('receipt')">Receive & Bill</div>
+</div>
+
+<!-- PRODUCT MENU -->
+<div id="product" class="screen">
+    <div class="title">Product Details & Rate</div>
+    <div class="menu-btn" onclick="openPage('fluteRates')">Flutes Rate</div>
+    <div class="menu-btn" onclick="openPage('polish')">Polishing Rate List</div>
+</div>
+
+<!-- FLUTE RATES -->
+<div id="fluteRates" class="screen">
+    <div class="title">Flutes Rate</div>
+    <div class="menu-btn" onclick="openPage('middleRates')">Middle Flutes Rate</div>
+    <div class="menu-btn" onclick="openPage('baseRates')">Base Flutes Rate</div>
+    <div class="menu-btn" onclick="openPage('sharpMiddle')">Sharp Middle Flutes</div>
+    <div class="menu-btn" onclick="openPage('sharpBase')">Sharp Base Flutes</div>
+</div>
+
+<div id="middleRates" class="screen">
+    <div class="title">Middle Flute Rates</div>
+    <div class="card flex"><span>A</span><span>₹400</span></div>
+    <div class="card flex"><span>B</span><span>₹400</span></div>
+    <div class="card flex"><span>C</span><span>₹1500</span></div>
+    <div class="card flex"><span>D</span><span>₹1300</span></div>
+    <div class="card flex"><span>E</span><span>₹1100</span></div>
+    <div class="card flex"><span>F</span><span>₹700</span></div>
+    <div class="card flex"><span>G</span><span>₹600</span></div>
+</div>
+
+<div id="baseRates" class="screen">
+    <div class="title">Base Flute Rates</div>
+    <div class="card flex"><span>A</span><span>₹1750</span></div>
+    <div class="card flex"><span>B</span><span>₹1600</span></div>
+    <div class="card flex"><span>C</span><span>₹2500</span></div>
+    <div class="card flex"><span>D</span><span>₹2200</span></div>
+    <div class="card flex"><span>E</span><span>₹2400</span></div>
+    <div class="card flex"><span>F</span><span>₹1999</span></div>
+    <div class="card flex"><span>G</span><span>₹1800</span></div>
+</div>
+
+<div id="sharpMiddle" class="screen">
+    <div class="title">Sharp Middle Rates</div>
+    <div class="card flex"><span>A#</span><span>₹500</span></div>
+    <div class="card flex"><span>C#</span><span>₹1470</span></div>
+    <div class="card flex"><span>D#</span><span>₹1150</span></div>
+    <div class="card flex"><span>F#</span><span>₹670</span></div>
+    <div class="card flex"><span>G#</span><span>₹550</span></div>
+</div>
+
+<div id="sharpBase" class="screen">
+    <div class="title">Sharp Base Rates</div>
+    <div class="card flex"><span>A#</span><span>₹1600</span></div>
+    <div class="card flex"><span>C#</span><span>₹2400</span></div>
+    <div class="card flex"><span>D#</span><span>₹2600</span></div>
+    <div class="card flex"><span>F#</span><span>₹1990</span></div>
+    <div class="card flex"><span>G#</span><span>₹1850</span></div>
+</div>
+
+<!-- POLISH LIST -->
+<div id="polish" class="screen">
+    <div class="title">Polishing Rates</div>
+    <div class="card flex"><span>Under 16 inch</span><span>₹20</span></div>
+    <div class="card flex"><span>16.1 – 20 inch</span><span>₹40</span></div>
+    <div class="card flex"><span>21.5 – 26 inch</span><span>₹45</span></div>
+    <div class="card flex"><span>27.5 – 30 inch</span><span>₹50</span></div>
+    <div class="card flex"><span>Above 30 inch</span><span>₹60</span></div>
+</div>
+
+<!-- POLISH CALCULATOR -->
+<div id="calcPolish" class="screen">
+    <div class="title">Polish Calculator</div>
+    <div class="calc-container">
+        <label style="display:block;margin-bottom:10px;font-size:13px;color:var(--text-dim)">Length daalein (e.g. 18, 25, 45):</label>
+        <input type="text" id="lengthInput" placeholder="Separated by space or comma">
+        <button class="action-btn" onclick="calculatePolish()">Calculate Total</button>
+        <div id="calcResult" style="display:none; margin-top:20px; border-top:1px dashed #444; padding-top:20px;"></div>
+    </div>
+</div>
+
+<!-- MEASUREMENTS -->
+<div id="measure" class="screen">
+    <div class="title">Flute Measurement</div>
+    <div class="menu-btn" onclick="openPage('middleMeasure')">Middle Flutes</div>
+    <div class="menu-btn" onclick="openPage('baseMeasure')">Base Flutes</div>
+</div>
+
+<div id="middleMeasure" class="screen">
+    <div class="title">Middle Measurements</div>
+    <div class="card flex"><span>C</span><span>19 inch</span></div>
+    <div class="card flex"><span>D</span><span>18.5 inch</span></div>
+    <div class="card flex"><span>D#</span><span>17 inch</span></div>
+    <div class="card flex"><span>E</span><span>16 inch</span></div>
+    <div class="card flex"><span>F</span><span>15 inch</span></div>
+    <div class="card flex"><span>F#</span><span>14 inch</span></div>
+    <div class="card flex"><span>G</span><span>13 inch</span></div>
+    <div class="card flex"><span>G#</span><span>12 inch</span></div>
+    <div class="card flex"><span>A</span><span>11 inch</span></div>
+    <div class="card flex"><span>A#</span><span>11.5 inch</span></div>
+    <div class="card flex"><span>B</span><span>10 inch</span></div>
+</div>
+
+<div id="baseMeasure" class="screen">
+    <div class="title">Base Measurements</div>
+    <div class="card flex"><span>C</span><span>36 inch</span></div>
+    <div class="card flex"><span>C#</span><span>34 inch</span></div>
+    <div class="card flex"><span>D</span><span>33 inch</span></div>
+    <div class="card flex"><span>D#</span><span>31.5 inch</span></div>
+    <div class="card flex"><span>E</span><span>30 inch</span></div>
+    <div class="card flex"><span>F</span><span>29 inch</span></div>
+    <div class="card flex"><span>F#</span><span>27.5 inch</span></div>
+    <div class="card flex"><span>G</span><span>26 inch</span></div>
+    <div class="card flex"><span>G#</span><span>24.5 inch</span></div>
+    <div class="card flex"><span>A</span><span>23 inch</span></div>
+    <div class="card flex"><span>A#</span><span>21.5 inch</span></div>
+    <div class="card flex"><span>B</span><span>20 inch</span></div>
+</div>
+
+<!-- RECEIPT & BILLING SECTION -->
+<div id="receipt" class="screen">
+    <div class="title">Receive & Bill</div>
+    <div class="menu-btn" onclick="openPage('billGen')">Generate New Bill</div>
+    <div class="menu-btn" onclick="openPage('billHistory')">Bills History</div>
+    <div class="menu-btn" onclick="openPage('employeeDoc')">Employee Document</div>
+    <div class="menu-btn" onclick="checkPassword('cii')">CII</div>
+</div>
+
+<!-- BILL GENERATOR -->
+<div id="billGen" class="screen">
+    <div class="title">Polish Bill Generator</div>
+    <div id="billArea" class="bill-box">
+        <h3 style="text-align:center;margin:0;letter-spacing:1px">PJ OFFICIAL BILL</h3>
+        <p style="text-align:center;font-size:11px;margin:2px 0 15px 0;opacity:0.7">Official Polish Service Receipt</p>
+        <div style="font-size:12px;margin-bottom:10px;display:flex;justify-content:space-between">
+            <span>Date: <span id="billDate">--/--/----</span></span>
+            <span>Worker ID: #<span id="billID">0000</span></span>
+        </div>
+        <input type="text" id="worker" placeholder="Enter Worker Name" style="margin-top:5px;background:#f0f0f0">
+        <div id="billItems"></div>
+        <div style="margin-top:20px; font-weight:700; font-size:18px; text-align:right; border-top:2px solid #000; padding-top:10px">
+            Total Amount: ₹<span id="billTotal">0</span>
+        </div>
+    </div>
+    <button class="action-btn" onclick="addBillRow()" style="background:#333;color:white;margin-top:20px">+ Add New Flute</button>
+    <button class="action-btn" onclick="downloadBill()">Download & Save to History</button>
+</div>
+
+<!-- BILL HISTORY -->
+<div id="billHistory" class="screen">
+    <div class="title">Saved Bills</div>
+    <div id="historyList"></div>
+</div>
+
+<!-- EMPLOYEE DOCUMENT -->
+<div id="employeeDoc" class="screen">
+    <div class="title">Employee Document</div>
+    <div style="text-align:center">
+        <img src="https://i.postimg.cc/kGn8V4gJ/Screenshot-20260221-205009-Photos-and-videos.png" style="max-width:100%;border-radius:16px;border:1px solid #333;box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        <br><br>
+        <a href="https://i.postimg.cc/kGn8V4gJ/Screenshot-20260221-205009-Photos-and-videos.png" download target="_blank" class="action-btn" style="display:inline-block;text-decoration:none;width:auto;padding:15px 40px">Download HD</a>
+    </div>
+</div>
+
+<!-- CII PAGE (PASSWORD PROTECTED) -->
+<div id="cii" class="screen">
+    <div class="title">Company Important Images</div>
+    
+    <div class="imgBox">
+        <div class="card">
+            <div>Owner Signature</div>
+            <img src="https://i.postimg.cc/bJHgFrC5/file-00000000005c72099d46cf69aa1ebc2c-(1).png" class="preview">
+            <a href="https://i.postimg.cc/bJHgFrC5/file-00000000005c72099d46cf69aa1ebc2c-(1).png" download target="_blank"><button class="download-btn">Download Signature</button></a>
+        </div>
+    </div>
+
+    <div class="imgBox">
+        <div class="card">
+            <div>Company Logo</div>
+            <img src="https://i.postimg.cc/W4KcbWsP/Screenshot-20260221-212958-Gallery.png" class="preview">
+            <a href="https://i.postimg.cc/W4KcbWsP/Screenshot-20260221-212958-Gallery.png" download target="_blank"><button class="download-btn">Download Logo</button></a>
+        </div>
+    </div>
+
+    <div class="imgBox">
+        <div class="card">
+            <div>PJ-ECC Seal</div>
+            <img src="https://i.postimg.cc/BZRbwpF7/1771677047110.jpg" class="preview">
+            <a href="https://i.postimg.cc/BZRbwpF7/1771677047110.jpg" download target="_blank"><button class="download-btn">Download Seal</button></a>
+        </div>
+    </div>
+
+    <div class="imgBox">
+        <div class="card">
+            <div>Official Watermark</div>
+            <img src="https://i.postimg.cc/L8vWhY4Y/Screenshot-20260221-204626-Photos-and-videos.png" class="preview">
+            <a href="https://i.postimg.cc/L8vWhY4Y/Screenshot-20260221-204626-Photos-and-videos.png" download target="_blank"><button class="download-btn">Download Watermark</button></a>
+        </div>
+    </div>
+
+    <div class="imgBox">
+        <div class="card">
+            <div>Store QR Code</div>
+            <img src="https://i.postimg.cc/13kKmwbd/Screenshot-20260221-213437-Gallery.png" class="preview">
+            <a href="https://i.postimg.cc/13kKmwbd/Screenshot-20260221-213437-Gallery.png" download target="_blank"><button class="download-btn">Download QR</button></a>
+        </div>
+    </div>
+</div>
+
+<!-- FLOATING APPROVAL -->
+<div class="float-box">
+    <div class="circle"><img src="https://i.postimg.cc/Dzfj12pF/file-00000000005c72099d46cf69aa1ebc2c.png"></div>
+    <div class="circle"><img src="https://i.postimg.cc/63kFrkGg/file-00000000841c71fab26ed8e9bbeff027.png"></div>
+    <div class="circle"><img src="https://i.postimg.cc/52rgQwvc/Screenshot-20260221-201134-Photos-and-videos.png"></div>
+    <div class="circle"><img src="https://i.postimg.cc/cC3xSq3V/Screenshot-20260221-201201-Photos-and-videos.png"></div>
+    <div class="circle"><img src="https://i.postimg.cc/gJmZxJgM/1771677047110.jpg"></div>
+    <div class="approve-text">Approved By Management</div>
+</div>
+
+<script>
+    let historyStack = ['home'];
+
+    function openPage(id) {
+        if(id === "billHistory") loadBills();
+        if(id === "billGen") {
+            document.getElementById('billDate').innerText = new Date().toLocaleDateString();
+         document.getElementById('billID').innerText = Math.floor(1000 + Math.random() * 9000);
+        }
+
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.getElementById('backBtn').style.display = (id === 'home') ? 'none' : 'block';
+        historyStack.push(id);
+        window.scrollTo(0, 0);
+    }
+
+    function back() {
+        if (historyStack.length > 1) {
+            historyStack.pop();
+            let id = historyStack[historyStack.length - 1];
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            document.getElementById('backBtn').style.display = (id === 'home') ? 'none' : 'block';
+        }
+    }
+
+    /* Password Protection Logic */
+    function checkPassword(page){
+        let pass = prompt("Enter Password to access CII");
+        if(pass === "PJ-ECC dashboard*432Hz"){
+            openPage(page);
+        } else if(pass !== null){
+            alert("Access Denied: Wrong Password");
+        }
+    }
+
+    /* Polish Rate Logic */
+    function getRate(inch){
+        inch = parseFloat(inch) || 0;
+        if(inch < 10 && inch > 0) return 15;
+        if(inch <= 15.5) return 20;
+        if(inch <= 20) return 40;
+        if(inch <= 26) return 45;
+        if(inch <= 30) return 50;
+        if(inch > 30) return 60;
+        return 0;
+    }
+
+    /* Bill Generator Logic */
+    function addBillRow(){
+        const container = document.getElementById("billItems");
+        let row = document.createElement("div");
+        row.className = "billRow";
+        row.innerHTML = `
+            Qty <input type="number" value="1" class="qty" style="width:50px"> 
+            Inch <input type="number" class="inch" style="width:70px"> 
+            Rate ₹<span class="rate">0</span>
+            <button onclick="this.parentElement.remove(); updateBillTotal();" style="float:right;background:none;border:none;color:red;font-weight:bold">X</button>
+        `;
+        container.appendChild(row);
+        
+        row.querySelector(".qty").addEventListener("input", updateBillTotal);
+        row.querySelector(".inch").addEventListener("input", updateBillTotal);
+    }
+
+    function updateBillTotal(){
+        let total = 0;
+        document.querySelectorAll(".billRow").forEach(row => {
+            let qty = parseFloat(row.querySelector(".qty").value) || 0;
+            let inch = parseFloat(row.querySelector(".inch").value) || 0;
+            let r = getRate(inch);
+            row.querySelector(".rate").innerText = r;
+            total += qty * r;
+        });
+        document.getElementById("billTotal").innerText = total;
+    }
+
+    function downloadBill(){
+        const bill = document.getElementById("billArea");
+        const total = document.getElementById("billTotal").innerText;
+        if(total == "0") return alert("Please add items first!");
+
+        html2canvas(bill, { scale: 2 }).then(canvas => {
+            let link = document.createElement("a");
+            link.download = "PJ-Official-Bill-" + Date.now() + ".png";
+            link.href = canvas.toDataURL();
+            link.click();
+
+            saveBill({
+                date: new Date().toLocaleString(),
+                worker: document.getElementById("worker").value || "General",
+                total: total
+            });
+
+            // Reset after download
+            setTimeout(() => {
+                document.getElementById("billItems").innerHTML = "";
+                document.getElementById("billTotal").innerText = "0";
+                document.getElementById("worker").value = "";
+            }, 500);
+        });
+    }
+
+    /* Bill History Storage */
+    function saveBill(data){
+        let bills = JSON.parse(localStorage.getItem("pjBills") || "[]");
+        bills.push(data);
+        localStorage.setItem("pjBills", JSON.stringify(bills));
+    }
+
+    function loadBills(){
+        let list = document.getElementById("historyList");
+        list.innerHTML = "";
+        let bills = JSON.parse(localStorage.getItem("pjBills") || "[]");
+
+        if(bills.length === 0){
+            list.innerHTML = "<div class='card'>No Saved Bills found.</div>";
+            return;
+        }
+
+        bills.reverse().forEach((b, i) => {
+            let div = document.createElement("div");
+            div.className = "card";
+            div.style.borderLeft = "5px solid var(--orange)";
+            div.innerHTML = `
+                <div style="font-size:12px;opacity:0.7">${b.date}</div>
+                <div style="margin:5px 0"><b>Worker:</b> ${b.worker}</div>
+                <div style="color:var(--orange);font-weight:bold;font-size:18px">Total: ₹${b.total}</div>
+                <button onclick="deleteBill(${bills.length-1-i})" style="margin-top:10px;background:#ff0000;color:white;border:none;padding:5px 10px;border-radius:4px;font-size:10px;cursor:pointer">Delete Record</button>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    function deleteBill(index){
+        if(!confirm("Delete this bill record?")) return;
+        let bills = JSON.parse(localStorage.getItem("pjBills") || "[]");
+        bills.splice(index, 1);
+        localStorage.setItem("pjBills", JSON.stringify(bills));
+        loadBills();
+    }
+
+    /* Polish Calculator Logic */
+    function calculatePolish() {
+        const input = document.getElementById('lengthInput').value;
+        const resultDiv = document.getElementById('calcResult');
+        const lengths = input.split(/[\s,]+/).filter(x => x.trim() !== "").map(Number);
+        
+        if (lengths.length === 0) { resultDiv.style.display = 'none'; return; }
+        
+        let total = 0;
+        let html = '<div style="font-weight:600; margin-bottom:10px;">Polish Summary:</div>';
+        
+        lengths.forEach((len, index) => {
+            let rate = getRate(len);
+            total += rate;
+            html += `<div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:5px;opacity:0.8"><span>#${index + 1} (${len}")</span><span>₹${rate}</span></div>`;
+        });
+        
+        html += `<div style="margin-top:15px;padding:12px;background:var(--orange-dim);border-radius:8px;color:var(--orange);font-weight:700;text-align:center;font-size:18px">Total: ₹${total}</div>`;
+        
+        resultDiv.innerHTML = html;
+        resultDiv.style.display = 'block';
+    }
+</script>
+  
+</body>
+</html>
