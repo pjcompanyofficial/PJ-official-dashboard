@@ -57,21 +57,26 @@
             overflow: hidden; border: 1px solid var(--border); position: relative;
         }
 
-        .cii-card img { width: 100%; height: 160px; object-fit: cover; }
+        .cii-card img { width: 100%; height: 160px; object-fit: cover; pointer-events: none; }
         .cii-info { padding: 10px; font-size: 13px; text-align: center; font-weight: 600; }
 
-        /* Selection Box Styling */
-        .select-dot {
-            position: absolute; top: 8px; right: 8px;
-            width: 26px; height: 26px; border: 2px solid var(--orange);
-            border-radius: 6px; background: rgba(0,0,0,0.7);
-            z-index: 50; display: flex; align-items: center; justify-content: center;
-            cursor: pointer; font-size: 16px; color: white;
+        /* Selection Overlay */
+        .select-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 60; cursor: pointer; display: none;
         }
-        .select-dot.selected { background: var(--orange); }
-        .select-dot.selected::after { content: '✓'; }
+        .select-dot {
+            position: absolute; top: 10px; right: 10px;
+            width: 28px; height: 28px; border: 2px solid var(--orange);
+            border-radius: 6px; background: rgba(0,0,0,0.8);
+            z-index: 70; display: flex; align-items: center; justify-content: center;
+            font-size: 18px; color: white; transition: 0.2s;
+        }
+        .cii-card.selected-item { border: 2px solid var(--orange); }
+        .cii-card.selected-item .select-dot { background: var(--orange); }
+        .cii-card.selected-item .select-dot::after { content: '✓'; }
 
-        /* Danger Zone */
+        /* Danger Section */
         .danger-section {
             margin: 40px 20px; padding: 25px;
             border: 2px dashed var(--red); border-radius: 20px; text-align: center;
@@ -90,18 +95,7 @@
             box-sizing: border-box; overflow-y: auto;
         }
 
-        /* Reasons */
-        .reason-card {
-            padding: 18px; border: 1px solid var(--border);
-            margin-bottom: 12px; border-radius: 12px;
-            display: flex; justify-content: space-between; align-items: center;
-            transition: 0.3s;
-        }
-        .reason-card.active { border-color: var(--green); background: rgba(0,255,0,0.05); }
-        .reason-circle { width: 20px; height: 20px; border: 2px solid var(--orange); border-radius: 50%; }
-        .reason-card.active .reason-circle { background: var(--green); border-color: var(--green); }
-
-        /* Water Animation */
+        /* Loader Animation */
         #waterBg {
             position: absolute; bottom: 0; left: 0; width: 100%; height: 0%;
             background: rgba(255, 122, 0, 0.25); z-index: -1; transition: height 0.4s linear;
@@ -116,12 +110,11 @@
         @keyframes rotate { 100% { transform: rotate(360deg); } }
         .percent-box { position: absolute; font-size: 32px; font-weight: 700; color: var(--orange); }
 
-        /* Inputs */
+        /* Form styling */
         .standard-input {
             width: 100%; padding: 15px; background: #111; border: 1px solid #333;
             color: white; border-radius: 10px; margin-bottom: 20px; font-size: 16px;
         }
-
         .btn-action {
             width: 100%; padding: 18px; border-radius: 12px; border: none;
             font-weight: bold; font-size: 16px; cursor: pointer;
@@ -139,22 +132,22 @@
         </div>
 
         <div id="galleryGrid" class="cii-grid">
-            <!-- Items added by JS -->
+            <!-- Items added via JS -->
         </div>
 
         <div class="danger-section">
-            <p style="color: var(--red); font-size: 13px; font-weight: 600;">HIGH SECURITY AREA</p>
-            <button id="dangerHold">HOLD 5s TO DELETE</button>
+            <p style="color: var(--red); font-size: 13px; font-weight: 600;">DANGER ZONE</p>
+            <button id="dangerHold">HOLD 5s TO UNLOCK DELETE</button>
         </div>
     </div>
 
     <!-- ADD PANEL -->
     <div id="addScreen" class="screen hidden">
-        <h2 style="color: var(--orange);">Naya Image Add Karein</h2>
+        <h2 style="color: var(--orange);">Naya Asset Add Karein</h2>
         <input type="file" id="fileInput" class="standard-input">
-        <input type="text" id="titleInput" placeholder="Image Title Likhein..." class="standard-input">
+        <input type="text" id="titleInput" placeholder="Asset ka naam likhein..." class="standard-input">
         <button id="saveBtn" class="btn-action btn-orange">CLOUD MEIN SAVE KAREIN</button>
-        <button onclick="hideScreen('addScreen')" class="btn-action" style="background:none; color:#555;">WAPAS JAYEIN</button>
+        <button onclick="hideScreen('addScreen')" class="btn-action" style="background:none; color:#555; margin-top:10px;">CANCEL</button>
     </div>
 
     <!-- REASON SCREEN -->
@@ -166,11 +159,11 @@
 
     <!-- OTP SCREEN -->
     <div id="otpScreen" class="screen hidden" style="text-align:center;">
-        <h2>Security Verification</h2>
-        <p style="color:#777; font-size:14px;">OTP parijat180chakraborty@gmail.com par bhej diya gaya hai.</p>
+        <h2>Security Check</h2>
+        <p style="color:#777;">OTP email par bhej diya gaya hai.</p>
         <input type="number" id="otpBox" class="standard-input" style="font-size:30px; letter-spacing:8px; text-align:center;" placeholder="000000">
-        <div id="otpFeedback" style="margin-bottom:20px; font-weight:bold;"></div>
-        <button id="verifyBtn" class="btn-action btn-orange">OTP VERIFY KAREIN</button>
+        <div id="otpFeedback" style="margin-bottom:20px;"></div>
+        <button id="verifyBtn" class="btn-action btn-orange">VERIFY OTP</button>
     </div>
 
     <!-- FINAL ANIMATION SCREEN -->
@@ -180,13 +173,13 @@
             <div class="loader-ring"></div>
             <div id="percentLabel" class="percent-box">0%</div>
         </div>
-        <h3 id="deletingTitle" style="margin-top:40px; color:var(--orange);">Processing...</h3>
+        <h3 id="deletingTitle" style="margin-top:40px; color:var(--orange);">Deleting...</h3>
         <button id="stopDelete" class="btn-action" style="background:var(--red); color:white; width:auto; padding:10px 40px; margin-top:30px;">STOP</button>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
         const firebaseConfig = {
@@ -205,97 +198,133 @@
         emailjs.init("EevqJ2-cX2wrZXXJO");
 
         let deleteMode = false;
-        let selectedData = [];
-        let timer;
-        let generatedOTP = null;
-        let currentReason = "";
-        let globalContinue = false;
+        let selectedItems = [];
+        let holdTimer;
+        let authOTP = null;
+        let activeReason = "";
+        let deletionActive = false;
 
-        // --- LOAD GALLERY (Fixed Selection Box Logic) ---
+        // --- Gallery Loader ---
         async function loadGallery() {
             const grid = document.getElementById('galleryGrid');
-            grid.innerHTML = "<p style='grid-column: span 2; text-align:center;'>Loading Assets...</p>";
+            grid.innerHTML = "<p style='grid-column: span 2; text-align:center;'>Assets Fetch Ho Rahe Hain...</p>";
             
-            const snapshot = await getDocs(collection(db, "cii"));
-            grid.innerHTML = "";
+            try {
+                // Fetch assets ordered by time (newest first)
+                const snapshot = await getDocs(collection(db, "cii"));
+                grid.innerHTML = "";
+                
+                snapshot.forEach((snap) => {
+                    const data = snap.data();
+                    const item = { id: snap.id, ...data };
 
-            snapshot.forEach((snap) => {
-                const data = snap.data();
-                const item = { id: snap.id, ...data };
+                    const card = document.createElement('div');
+                    card.className = "cii-card";
+                    card.innerHTML = `
+                        <img src="${data.url}">
+                        <div class="cii-info">${data.title}</div>
+                        <div class="select-dot"></div>
+                        <div class="select-overlay" style="display: ${deleteMode ? 'block' : 'none'}"></div>
+                    `;
 
-                const card = document.createElement('div');
-                card.className = "cii-card";
-                card.innerHTML = `
-                    <img src="${data.url}">
-                    <div class="cii-info">${data.title}</div>
-                `;
-
-                // Add Selection Box if Delete Mode is ON
-                if (deleteMode) {
-                    const dot = document.createElement('div');
-                    dot.className = "select-dot";
-                    dot.onclick = (e) => {
-                        e.stopPropagation();
-                        dot.classList.toggle('selected');
-                        if (dot.classList.contains('selected')) {
-                            selectedData.push(item);
-                        } else {
-                            selectedData = selectedData.filter(i => i.id !== item.id);
-                        }
+                    const overlay = card.querySelector('.select-overlay');
+                    overlay.onclick = () => {
+                        const isSelected = card.classList.toggle('selected-item');
+                        if (isSelected) selectedItems.push(item);
+                        else selectedItems = selectedItems.filter(i => i.id !== item.id);
                     };
-                    card.appendChild(dot);
-                }
 
-                grid.appendChild(card);
-            });
+                    grid.appendChild(card);
+                });
+            } catch (err) {
+                grid.innerHTML = "<p>Data Loading Failed.</p>";
+            }
         }
 
-        // --- DANGER HOLD (5 Seconds) ---
-        const dBtn = document.getElementById('dangerHold');
-        const startH = () => {
-            dBtn.style.transform = "scale(0.96)";
-            timer = setTimeout(() => {
+        // --- Save Asset (With Auto Redirect Fix) ---
+        document.getElementById('saveBtn').onclick = async () => {
+            const file = document.getElementById('fileInput').files[0];
+            const title = document.getElementById('titleInput').value;
+            
+            if (!file || !title) return alert("Pehle file select karein aur title likhein!");
+
+            const btn = document.getElementById('saveBtn');
+            btn.innerText = "UPLOADING..."; btn.disabled = true;
+
+            try {
+                const filePath = `cii/${Date.now()}_${file.name}`;
+                const sRef = ref(storage, filePath);
+                
+                // 1. Upload to Storage
+                await uploadBytes(sRef, file);
+                const url = await getDownloadURL(sRef);
+
+                // 2. Save to Firestore
+                await addDoc(collection(db, "cii"), {
+                    title: title,
+                    url: url,
+                    path: filePath,
+                    createdAt: Date.now()
+                });
+
+                // --- FIX: Auto Redirect aur Reset ---
+                alert("Naya Asset CII Page par add ho gaya!");
+                
+                // Form saaf karein
+                document.getElementById('fileInput').value = "";
+                document.getElementById('titleInput').value = "";
+                
+                // Add Screen band karein aur Gallery dikhayein
+                hideScreen('addScreen');
+                loadGallery(); // Gallery turant update ho jayegi
+                
+                btn.innerText = "CLOUD MEIN SAVE KAREIN"; btn.disabled = false;
+
+            } catch (e) {
+                alert("Upload failed: " + e.message);
+                btn.innerText = "SAVE AGAIN"; btn.disabled = false;
+            }
+        };
+
+        // --- Danger Hold Trigger ---
+        const holdBtn = document.getElementById('dangerHold');
+        const startHold = () => {
+            holdTimer = setTimeout(() => {
                 deleteMode = true;
-                selectedData = [];
-                alert("DELETE MODE ACTIVE: Ab images select karke upar '→' par click karein.");
+                selectedItems = [];
+                alert("DELETE MODE ON: Images select karein aur upar '→' par click karein.");
                 document.getElementById('plusBtn').innerText = "→";
                 loadGallery();
             }, 5000);
         };
-        const endH = () => {
-            clearTimeout(timer);
-            dBtn.style.transform = "scale(1)";
-        };
+        const cancelHold = () => clearTimeout(holdTimer);
 
-        dBtn.onmousedown = startH; dBtn.onmouseup = endH;
-        dBtn.ontouchstart = startH; dBtn.ontouchend = endH;
+        holdBtn.onmousedown = startHold; holdBtn.onmouseup = cancelHold;
+        holdBtn.ontouchstart = startHold; holdBtn.ontouchend = cancelHold;
 
-        // --- PLUS BUTTON ACTION ---
+        // --- UI Buttons ---
         document.getElementById('plusBtn').onclick = () => {
             if (!deleteMode) {
                 document.getElementById('addScreen').classList.remove('hidden');
             } else {
-                if (selectedData.length === 0) return alert("Pehle images select karein!");
-                openReasonScreen();
+                if (selectedItems.length === 0) return alert("Kuch toh select karein!");
+                showReasonScreen();
             }
         };
 
-        // --- 17 REASONS ---
         const reasons = [
-            "Maine galti se upload kar diya", "Picture galat hai, kuch aur hona tha",
-            "Duplicate entry mil gayi", "Data purana ho gaya hai", "Resolution achhi nahi hai",
-            "Galat category mein upload hua", "Security reasons", "Testing purpose complete",
-            "Owner's direct order", "Image corrupted lag rahi hai", "Employee ne galti se dala",
-            "Information update karni hai", "Internal storage management", "Wrong title mention kiya",
-            "Quality checking failed", "Experimental upload tha", "Legal policy issue"
+            "Maine galti se upload kar diya", "Picture galat hai", "Duplicate entry",
+            "Data purana ho gaya", "Quality achhi nahi hai", "Galat category",
+            "Security reasons", "Testing complete", "Owner's order", "Image corrupted",
+            "Employee error", "Information update", "Internal management", "Wrong title",
+            "Quality failed", "Experimental", "Legal issue"
         ];
 
-        function openReasonScreen() {
-            document.getElementById('galleryView').classList.add('hidden');
+        function showReasonScreen() {
+            hideScreen('galleryView');
             document.getElementById('reasonScreen').classList.remove('hidden');
-            const cont = document.getElementById('reasonsContainer');
-            cont.innerHTML = "";
-            
+            const box = document.getElementById('reasonsContainer');
+            box.innerHTML = "";
             reasons.forEach(r => {
                 const div = document.createElement('div');
                 div.className = "reason-card";
@@ -303,115 +332,74 @@
                 div.onclick = () => {
                     document.querySelectorAll('.reason-card').forEach(c => c.classList.remove('active'));
                     div.classList.add('active');
-                    currentReason = r;
+                    activeReason = r;
                     document.getElementById('reasonNext').classList.remove('hidden');
                 };
-                cont.appendChild(div);
+                box.appendChild(div);
             });
         }
 
         document.getElementById('reasonNext').onclick = async () => {
-            generatedOTP = Math.floor(100000 + Math.random() * 900000);
+            authOTP = Math.floor(100000 + Math.random() * 900000);
             try {
                 await emailjs.send("Service_4mpzhc6", "template_1rgmrr5", {
-                    otp_code: generatedOTP,
-                    reason: currentReason,
+                    otp_code: authOTP,
+                    reason: activeReason,
                     to_email: "parijat180chakraborty@gmail.com"
                 });
                 hideScreen('reasonScreen');
                 document.getElementById('otpScreen').classList.remove('hidden');
-            } catch (e) { alert("OTP Send Error!"); }
+            } catch (e) { alert("OTP Send Failed!"); }
         };
 
-        // --- OTP VERIFY ---
         document.getElementById('verifyBtn').onclick = () => {
-            const val = document.getElementById('otpBox').value;
-            const box = document.getElementById('otpBox');
-            const feed = document.getElementById('otpFeedback');
-
-            if (val == generatedOTP) {
-                box.style.borderColor = "var(--green)";
-                feed.innerText = "Verification Success!";
-                feed.style.color = "var(--green)";
-                setTimeout(startFinalProcess, 1500);
+            if (document.getElementById('otpBox').value == authOTP) {
+                initiateDeletion();
             } else {
-                box.style.borderColor = "var(--red)";
-                feed.innerText = "Incorrect OTP!";
-                feed.style.color = "var(--red)";
+                alert("OTP galat hai!");
             }
         };
 
-        // --- FINAL DELETION ANIMATION ---
-        async function startFinalProcess() {
+        async function initiateDeletion() {
             hideScreen('otpScreen');
             document.getElementById('animScreen').classList.remove('hidden');
-            globalContinue = true;
+            deletionActive = true;
 
-            for (let item of selectedData) {
-                if (!globalContinue) break;
-                document.getElementById('deletingTitle').innerText = `Deleting: ${item.title}`;
-                
+            for (let item of selectedItems) {
+                if (!deletionActive) break;
+                document.getElementById('deletingTitle').innerText = `Removing: ${item.title}`;
                 let p = 0;
                 await new Promise(res => {
                     const int = setInterval(() => {
-                        if (!globalContinue) { clearInterval(int); res(); return; }
+                        if (!deletionActive) { clearInterval(int); res(); return; }
                         p++;
                         document.getElementById('percentLabel').innerText = p + "%";
                         document.getElementById('waterBg').style.height = p + "%";
                         if (p >= 100) { clearInterval(int); res(); }
-                    }, 300); // 30s per image
+                    }, 300);
                 });
 
-                if (globalContinue) {
+                if (deletionActive) {
                     await deleteDoc(doc(db, "cii", item.id));
                     if (item.path) {
                         try { await deleteObject(ref(storage, item.path)); } catch(e){}
                     }
                 }
             }
-
-            if (globalContinue) {
-                alert("Selected data successfully deleted!");
+            if (deletionActive) {
+                alert("Deletion Successful!");
                 location.reload();
             }
         }
 
         document.getElementById('stopDelete').onclick = () => {
-            globalContinue = false;
-            alert("Process Stopped!");
+            deletionActive = false;
             location.reload();
-        };
-
-        // --- SAVE FUNCTION ---
-        document.getElementById('saveBtn').onclick = async () => {
-            const file = document.getElementById('fileInput').files[0];
-            const title = document.getElementById('titleInput').value;
-            if (!file || !title) return alert("Dono cheezein bhariye!");
-
-            const btn = document.getElementById('saveBtn');
-            btn.innerText = "SAVING..."; btn.disabled = true;
-
-            try {
-                const fPath = `cii/${Date.now()}_${file.name}`;
-                const sRef = ref(storage, fPath);
-                await uploadBytes(sRef, file);
-                const url = await getDownloadURL(sRef);
-
-                await addDoc(collection(db, "cii"), {
-                    title: title, url: url, path: fPath, time: Date.now()
-                });
-
-                alert("Successfully saved!");
-                location.reload();
-            } catch (e) {
-                alert("Error: " + e.message);
-                btn.innerText = "CLOUD MEIN SAVE KAREIN"; btn.disabled = false;
-            }
         };
 
         window.hideScreen = (id) => document.getElementById(id).classList.add('hidden');
 
-        // Start
+        // Init App
         loadGallery();
 
     </script>
