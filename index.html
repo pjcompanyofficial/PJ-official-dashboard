@@ -25,9 +25,9 @@
     <input id="emailInput" type="text" placeholder="Enter your email (example: someone@example.com)" 
       style="width:100%;padding:12px;border-radius:8px;border:none;outline:none;font-size:14px;background:#111;color:#fff;" />
 
-    <!-- Password input (admins) -->
-    <input id="passwordInput" type="password" placeholder="Admin password (for admin access)"
-      style="width:100%;padding:12px;border-radius:8px;border:none;outline:none;font-size:14px;background:#111;color:#fff;margin-top:10px;" />
+    <!-- Password input (admins) - hidden by default -->
+    <input id="passwordInput" type="password" placeholder="(Admin only) Enter admin password"
+      style="width:100%;padding:12px;border-radius:8px;border:none;outline:none;font-size:14px;background:#111;color:#fff;margin-top:10px;display:none;" />
 
     <button id="continueBtn" style="margin-top:16px;width:100%;padding:12px;border:none;border-radius:30px;background:#ff7a00;color:#000;font-weight:700;cursor:pointer;font-size:14px;">
       Continue
@@ -55,15 +55,6 @@
   </div>
 
 <script type="module">
-/*
-  Robust handler:
-  - wait for DOMContentLoaded
-  - ensure EmailJS global is available (retry a bit)
-  - initialize emailjs
-  - register listeners
-  - provide clear console logs and UI messages
-*/
-
 import { db } from "./firebase.js";
 import {
   collection,
@@ -75,13 +66,14 @@ import {
   doc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+/* CONFIG */
 const ADMIN_PASSWORD = "sonu@jeet";
 const EMAILJS_PUBLIC_KEY = "EevqJ2-cX2wrZXXJO";
 const EMAILJS_SERVICE = "service_4mpzhc6";
 const EMAILJS_TEMPLATE = "template_b2flto4";
 
-function log(...args){ console.log("[pj]", ...args); }
-function showMsg(text, color="#ccc"){
+/* small helpers */
+function showUserMessage(text, color="#ccc"){
   const el = document.getElementById("userMsg");
   el.innerText = text;
   el.style.color = color;
@@ -91,164 +83,137 @@ function showAdminStatus(text, color="#ccc"){
   el.innerText = text;
   el.style.color = color;
 }
-
 function isLikelyEmail(s){
   if(!s) return false;
   return s.trim().toLowerCase().endsWith(".com");
 }
 
-// Wait for DOM ready
+/* wait DOM */
 document.addEventListener("DOMContentLoaded", async () => {
-  log("DOM ready");
 
-  // Wait for EmailJS global to load (sometimes CDN is slow)
+  // initialize EmailJS (global script)
   let tries = 0;
   while (typeof window.emailjs === "undefined" && tries < 20) {
     await new Promise(res => setTimeout(res, 100));
     tries++;
   }
-  if (typeof window.emailjs === "undefined") {
-    log("EmailJS global not available - email sending will fail. Check network.");
-    showMsg("Email service unavailable right now.", "red");
-  } else {
-    // initialize EmailJS once
-    try {
-      window.emailjs.init(EMAILJS_PUBLIC_KEY);
-      log("EmailJS initialized");
-    } catch(e){
-      console.error("EmailJS init error", e);
-      showMsg("Email service init failed.", "red");
-    }
+  if (typeof window.emailjs !== "undefined") {
+    try { window.emailjs.init(EMAILJS_PUBLIC_KEY); } catch(e){ console.warn("EmailJS init err", e); }
   }
 
   const emailInput = document.getElementById("emailInput");
   const passwordInput = document.getElementById("passwordInput");
   const continueBtn = document.getElementById("continueBtn");
-  const userMsg = document.getElementById("userMsg");
   const adminPanel = document.getElementById("adminPanel");
   const doneBtn = document.getElementById("doneBtn");
   const backBtn = document.getElementById("backBtn");
 
-  continueBtn.addEventListener("click", async () => {
-    showMsg("");
-    const emailVal = emailInput.value.trim();
-    const passVal = passwordInput.value.trim();
+  /* reveal admin password input: double-click email input */
+  emailInput.addEventListener("dblclick", () => {
+    passwordInput.style.display = "block";
+    passwordInput.focus();
+    showUserMessage("Admin mode visible (secret)", "#ff7a00");
+  });
 
-    // ADMIN FLOW (password entered)
-    if (passVal.length > 0) {
-      if (passVal === ADMIN_PASSWORD) {
+  /* CONTINUE button */
+  continueBtn.addEventListener("click", async () => {
+    showUserMessage("");
+    const val = emailInput.value.trim();
+    const pass = passwordInput.value.trim();
+
+    // ADMIN: if password entered and correct, open admin panel immediately (no save)
+    if (pass.length > 0) {
+      if (pass === ADMIN_PASSWORD) {
         adminPanel.style.display = "block";
-        showMsg("Admin access granted", "#00ff99");
+        showUserMessage("Admin access granted", "#00ff99");
+        // clear inputs (do not save)
         emailInput.value = "";
         passwordInput.value = "";
-        log("Admin unlocked");
       } else {
-        showMsg("Wrong admin password", "red");
-        log("Admin password wrong");
+        showUserMessage("Wrong admin password", "red");
       }
       return;
     }
 
-    // NORMAL USER FLOW
-    if (!isLikelyEmail(emailVal)) {
-      showMsg("Enter a valid email that ends with .com", "orange");
-      log("Invalid email attempted:", emailVal);
+    // USER: save email (validate)
+    if (!isLikelyEmail(val)) {
+      showUserMessage("Enter valid email (must end with .com)", "orange");
       return;
     }
 
     try {
-      // duplicate check
-      const q = query(collection(db, "notifyEmails"), where("email", "==", emailVal));
+      const q = query(collection(db, "notifyEmails"), where("email", "==", val));
       const snap = await getDocs(q);
-
       if (!snap.empty) {
-        showMsg("This email is already registered", "orange");
-        log("Duplicate email skip:", emailVal);
+        showUserMessage("This email already saved", "orange");
         return;
       }
 
-      // save to Firestore
       await addDoc(collection(db, "notifyEmails"), {
-        email: emailVal,
+        email: val,
         notified: false,
         createdAt: Date.now()
       });
 
-      // optional immediate confirmation email to the user (using EmailJS)
+      // optional immediate confirmation (can be left or removed)
       if (typeof window.emailjs !== "undefined") {
         try {
-          await window.emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, { to_email: emailVal });
-          log("Confirmation email sent to", emailVal);
-        } catch(e){
-          console.warn("Confirmation email failed for", emailVal, e);
-          // still consider save successful
+          await window.emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, { to_email: val });
+        } catch(e) {
+          console.warn("Immediate confirmation failed:", e);
         }
       }
 
-      showMsg("Email saved successfully. We'll notify you when live.", "#00ff99");
+      showUserMessage("Email saved successfully", "#00ff99");
       emailInput.value = "";
 
     } catch (err) {
       console.error("Save email failed:", err);
-      showMsg("Unable to save email right now. Try again.", "red");
+      showUserMessage("Unable to save email. Try again.", "red");
     }
   });
 
-  // BACK BUTTON hides admin panel
+  /* BACK button */
   backBtn.addEventListener("click", () => {
     adminPanel.style.display = "none";
-    showMsg("Returned from admin panel", "#ccc");
+    showUserMessage("Returned from admin panel", "#ccc");
     showAdminStatus("", "#ccc");
-    log("Admin panel hidden");
   });
 
-  // DONE: send to all unnotified users
+  /* DONE: send to all unnotified users with delay + update notified flag */
   doneBtn.addEventListener("click", async () => {
     showAdminStatus("Preparing to send emails...", "#ccc");
-    log("Admin started send");
 
     try {
       const snap = await getDocs(collection(db, "notifyEmails"));
       let sentCount = 0;
 
-      function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+      function sleep(ms){ return new Promise(res => setTimeout(res, ms)); }
 
-for (const d of snap.docs) {
-  const data = d.data();
+      for (const d of snap.docs) {
+        const data = d.data();
+        if (data.notified === true) continue;
 
-  // agar pehle se notify ho chuka hai to skip
-  if (data.notified === true) continue;
-
-  await emailjs.send(
-    "service_4mpzhc6",
-    "template_b2flto4",
-    { to_email: data.email }
-  );
-
-  // optional: agar tum flag use kar rahe ho
-  // await updateDoc(doc(db, "notifyEmails", d.id), {
-  //   notified: true
-  // });
-
-  // 🔴 YAHI MAIN FIX HAI
-  await sleep(2000); // 2 second gap
-}
+        if (typeof window.emailjs === "undefined") {
+          throw new Error("EmailJS not loaded");
+        }
 
         try {
           await window.emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, { to_email: data.email });
+          // mark notified true
           await updateDoc(doc(db, "notifyEmails", d.id), { notified: true });
           sentCount++;
-          log("Sent to:", data.email);
+          console.log("Sent to:", data.email);
         } catch (sendErr) {
-          console.error("Failed to send to", data.email, sendErr);
-          // continue but don't mark notified
+          console.error("Failed to send to:", data.email, sendErr);
+          // continue without marking notified
         }
+
+        // delay to reduce block risk
+        await sleep(2000);
       }
 
       showAdminStatus(`Completed. ${sentCount} emails sent.`, "#00ff99");
-      log("Admin send completed. count:", sentCount);
 
     } catch (err) {
       console.error("Error sending update emails:", err);
@@ -256,7 +221,7 @@ for (const d of snap.docs) {
     }
   });
 
-}); // DOMContentLoaded end
+}); // end DOMContentLoaded
 </script>
 
 <style>
@@ -265,14 +230,10 @@ for (const d of snap.docs) {
 .big { font-size:88px; left:50%; top:50%; transform:translate(-50%,-50%); animation:spin 5s linear infinite; }
 .mid { font-size:56px; left:68%; top:36%; animation:spinReverse 3s linear infinite; }
 .small { font-size:36px; left:34%; top:30%; animation:spin 2s linear infinite; }
-
 @keyframes spin { from { transform:translate(-50%,-50%) rotate(0deg); } to { transform:translate(-50%,-50%) rotate(360deg); } }
 @keyframes spinReverse { from { transform:rotate(360deg);} to { transform:rotate(0);} }
-
 input { box-sizing:border-box; }
-@media (max-width:420px) {
-  body > div { width:92% !important; }
-}
+@media (max-width:420px) { body > div { width:92% !important; } }
 </style>
 </body>
 </html>
