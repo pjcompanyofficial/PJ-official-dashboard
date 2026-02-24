@@ -3,12 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <title>PJ Official – Under Maintenance</title>
-  <!-- EmailJS client -->
+
+  <!-- EmailJS client (global) -->
   <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 </head>
 <body style="margin:0;min-height:100vh;background:#000;color:#fff;font-family:Arial, Helvetica, sans-serif;display:flex;align-items:center;justify-content:center;text-align:center;">
 
-  <div style="width:380px;padding:26px;">
+  <div style="width:380px;padding:26px;position:relative;">
 
     <!-- animated gears -->
     <div style="position:relative;height:120px;margin-bottom:22px;">
@@ -53,15 +54,16 @@
 
   </div>
 
-<!-- module script (imports must be inside module) -->
 <script type="module">
-/* ---------- CONFIG ---------- */
-const ADMIN_PASSWORD = "sonu@jeet"; // as requested
+/*
+  Robust handler:
+  - wait for DOMContentLoaded
+  - ensure EmailJS global is available (retry a bit)
+  - initialize emailjs
+  - register listeners
+  - provide clear console logs and UI messages
+*/
 
-/* Initialize EmailJS (public key you gave earlier) */
-emailjs.init("EevqJ2-cX2wrZXXJO");
-
-/* Import Firestore helper from local firebase.js */
 import { db } from "./firebase.js";
 import {
   collection,
@@ -73,123 +75,172 @@ import {
   doc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* ---------- DOM ---------- */
-const emailInput = document.getElementById("emailInput");
-const passwordInput = document.getElementById("passwordInput");
-const continueBtn = document.getElementById("continueBtn");
-const userMsg = document.getElementById("userMsg");
+const ADMIN_PASSWORD = "sonu@jeet";
+const EMAILJS_PUBLIC_KEY = "EevqJ2-cX2wrZXXJO";
+const EMAILJS_SERVICE = "service_4mpzhc6";
+const EMAILJS_TEMPLATE = "template_b2flto4";
 
-const adminPanel = document.getElementById("adminPanel");
-const doneBtn = document.getElementById("doneBtn");
-const adminStatus = document.getElementById("adminStatus");
-const backBtn = document.getElementById("backBtn");
-
-/* ---------- HELPERS ---------- */
-function showUserMessage(text, color="#ccc") {
-  userMsg.innerText = text;
-  userMsg.style.color = color;
+function log(...args){ console.log("[pj]", ...args); }
+function showMsg(text, color="#ccc"){
+  const el = document.getElementById("userMsg");
+  el.innerText = text;
+  el.style.color = color;
+}
+function showAdminStatus(text, color="#ccc"){
+  const el = document.getElementById("adminStatus");
+  el.innerText = text;
+  el.style.color = color;
 }
 
-function isLikelyEmail(s) {
-  if (!s) return false;
-  // simple check as you requested: ends with .com (case-insensitive)
+function isLikelyEmail(s){
+  if(!s) return false;
   return s.trim().toLowerCase().endsWith(".com");
 }
 
-/* ---------- CONTINUE CLICK HANDLER ---------- */
-continueBtn.addEventListener("click", async () => {
-  showUserMessage("");
+// Wait for DOM ready
+document.addEventListener("DOMContentLoaded", async () => {
+  log("DOM ready");
 
-  const emailVal = emailInput.value.trim();
-  const passVal = passwordInput.value.trim();
-
-  // If admin password field filled and matches, open admin
-  if (passVal.length > 0) {
-    if (passVal === ADMIN_PASSWORD) {
-      // Show admin panel, clear messages and inputs
-      adminPanel.style.display = "block";
-      showUserMessage("Admin access granted", "#00ff99");
-      emailInput.value = "";
-      passwordInput.value = "";
-      return;
-    } else {
-      showUserMessage("Wrong admin password", "red");
-      return;
+  // Wait for EmailJS global to load (sometimes CDN is slow)
+  let tries = 0;
+  while (typeof window.emailjs === "undefined" && tries < 20) {
+    await new Promise(res => setTimeout(res, 100));
+    tries++;
+  }
+  if (typeof window.emailjs === "undefined") {
+    log("EmailJS global not available - email sending will fail. Check network.");
+    showMsg("Email service unavailable right now.", "red");
+  } else {
+    // initialize EmailJS once
+    try {
+      window.emailjs.init(EMAILJS_PUBLIC_KEY);
+      log("EmailJS initialized");
+    } catch(e){
+      console.error("EmailJS init error", e);
+      showMsg("Email service init failed.", "red");
     }
   }
 
-  // Normal user flow: require a valid-looking email (endsWith .com)
-  if (!isLikelyEmail(emailVal)) {
-    showUserMessage("Enter a valid email that ends with .com", "orange");
-    return;
-  }
+  const emailInput = document.getElementById("emailInput");
+  const passwordInput = document.getElementById("passwordInput");
+  const continueBtn = document.getElementById("continueBtn");
+  const userMsg = document.getElementById("userMsg");
+  const adminPanel = document.getElementById("adminPanel");
+  const doneBtn = document.getElementById("doneBtn");
+  const backBtn = document.getElementById("backBtn");
 
-  try {
-    // duplicate check
-    const q = query(collection(db, "notifyEmails"), where("email", "==", emailVal));
-    const snap = await getDocs(q);
+  continueBtn.addEventListener("click", async () => {
+    showMsg("");
+    const emailVal = emailInput.value.trim();
+    const passVal = passwordInput.value.trim();
 
-    if (!snap.empty) {
-      showUserMessage("This email is already registered", "orange");
+    // ADMIN FLOW (password entered)
+    if (passVal.length > 0) {
+      if (passVal === ADMIN_PASSWORD) {
+        adminPanel.style.display = "block";
+        showMsg("Admin access granted", "#00ff99");
+        emailInput.value = "";
+        passwordInput.value = "";
+        log("Admin unlocked");
+      } else {
+        showMsg("Wrong admin password", "red");
+        log("Admin password wrong");
+      }
       return;
     }
 
-    // save to Firestore
-    await addDoc(collection(db, "notifyEmails"), {
-      email: emailVal,
-      notified: false,
-      createdAt: Date.now()
-    });
+    // NORMAL USER FLOW
+    if (!isLikelyEmail(emailVal)) {
+      showMsg("Enter a valid email that ends with .com", "orange");
+      log("Invalid email attempted:", emailVal);
+      return;
+    }
 
-    showUserMessage("Email saved successfully. We'll notify you when live.", "#00ff99");
-    emailInput.value = "";
+    try {
+      // duplicate check
+      const q = query(collection(db, "notifyEmails"), where("email", "==", emailVal));
+      const snap = await getDocs(q);
 
-  } catch (err) {
-    console.error("Save email failed:", err);
-    showUserMessage("Unable to save email right now. Try again.", "red");
-  }
-});
+      if (!snap.empty) {
+        showMsg("This email is already registered", "orange");
+        log("Duplicate email skip:", emailVal);
+        return;
+      }
 
-/* ---------- BACK BUTTON IN ADMIN ---------- */
-backBtn.addEventListener("click", () => {
-  adminPanel.style.display = "none";
-  adminStatus.innerText = "";
-  showUserMessage("Returned from admin panel", "#ccc");
-});
-
-/* ---------- DONE (send update email to all saved accounts) ---------- */
-doneBtn.addEventListener("click", async () => {
-  adminStatus.style.color = "#ccc";
-  adminStatus.innerText = "Preparing to send emails...";
-
-  try {
-    const snap = await getDocs(collection(db, "notifyEmails"));
-    let sentCount = 0;
-
-    for (const d of snap.docs) {
-      const data = d.data();
-      if (data.notified === true) continue; // skip already-notified
-
-      // Send via EmailJS using the service/template you provided
-      await emailjs.send("service_4mpzhc6", "template_b2flto4", {
-        to_email: data.email
+      // save to Firestore
+      await addDoc(collection(db, "notifyEmails"), {
+        email: emailVal,
+        notified: false,
+        createdAt: Date.now()
       });
 
-      // mark notified = true
-      await updateDoc(doc(db, "notifyEmails", d.id), { notified: true });
+      // optional immediate confirmation email to the user (using EmailJS)
+      if (typeof window.emailjs !== "undefined") {
+        try {
+          await window.emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, { to_email: emailVal });
+          log("Confirmation email sent to", emailVal);
+        } catch(e){
+          console.warn("Confirmation email failed for", emailVal, e);
+          // still consider save successful
+        }
+      }
 
-      sentCount++;
+      showMsg("Email saved successfully. We'll notify you when live.", "#00ff99");
+      emailInput.value = "";
+
+    } catch (err) {
+      console.error("Save email failed:", err);
+      showMsg("Unable to save email right now. Try again.", "red");
     }
+  });
 
-    adminStatus.style.color = "#00ff99";
-    adminStatus.innerText = `Completed. ${sentCount} emails sent.`;
+  // BACK BUTTON hides admin panel
+  backBtn.addEventListener("click", () => {
+    adminPanel.style.display = "none";
+    showMsg("Returned from admin panel", "#ccc");
+    showAdminStatus("", "#ccc");
+    log("Admin panel hidden");
+  });
 
-  } catch (err) {
-    console.error("Error sending update emails:", err);
-    adminStatus.style.color = "red";
-    adminStatus.innerText = "Error sending emails — check console or EmailJS settings.";
-  }
-});
+  // DONE: send to all unnotified users
+  doneBtn.addEventListener("click", async () => {
+    showAdminStatus("Preparing to send emails...", "#ccc");
+    log("Admin started send");
+
+    try {
+      const snap = await getDocs(collection(db, "notifyEmails"));
+      let sentCount = 0;
+
+      for (const d of snap.docs) {
+        const data = d.data();
+        if (data.notified === true) continue;
+
+        // ensure EmailJS is present
+        if (typeof window.emailjs === "undefined") {
+          throw new Error("EmailJS not loaded");
+        }
+
+        try {
+          await window.emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, { to_email: data.email });
+          await updateDoc(doc(db, "notifyEmails", d.id), { notified: true });
+          sentCount++;
+          log("Sent to:", data.email);
+        } catch (sendErr) {
+          console.error("Failed to send to", data.email, sendErr);
+          // continue but don't mark notified
+        }
+      }
+
+      showAdminStatus(`Completed. ${sentCount} emails sent.`, "#00ff99");
+      log("Admin send completed. count:", sentCount);
+
+    } catch (err) {
+      console.error("Error sending update emails:", err);
+      showAdminStatus("Error sending emails — check console or EmailJS settings.", "red");
+    }
+  });
+
+}); // DOMContentLoaded end
 </script>
 
 <style>
@@ -200,14 +251,12 @@ doneBtn.addEventListener("click", async () => {
 .small { font-size:36px; left:34%; top:30%; animation:spin 2s linear infinite; }
 
 @keyframes spin { from { transform:translate(-50%,-50%) rotate(0deg); } to { transform:translate(-50%,-50%) rotate(360deg); } }
-@keyframes spinReverse { from { transform:rotate(360deg);} to { transform:rotate(0deg);} }
+@keyframes spinReverse { from { transform:rotate(360deg);} to { transform:rotate(0);} }
 
-/* make inputs look neat on small screens */
 input { box-sizing:border-box; }
 @media (max-width:420px) {
   body > div { width:92% !important; }
 }
 </style>
-
 </body>
 </html>
