@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>PJ Official – Under Maintenance</title>
 </head>
 
@@ -33,20 +33,20 @@
     Enter your email to get notified once the website is live.
   </p>
 
-  <!-- SINGLE INPUT -->
+  <!-- EMAIL INPUT -->
   <input
-    id="inputValue"
-    type="text"
+    id="emailInput"
+    type="email"
     placeholder="Enter your email"
-    style="
-      width:100%;
-      padding:12px;
-      margin-top:20px;
-      border:none;
-      border-radius:6px;
-      outline:none;
-      font-size:14px;
-    "
+    style="width:100%;padding:12px;margin-top:20px;border:none;border-radius:6px;"
+  />
+
+  <!-- ADMIN PASSWORD (HIDDEN BY DEFAULT) -->
+  <input
+    id="passwordInput"
+    type="password"
+    placeholder="Admin password"
+    style="width:100%;padding:12px;margin-top:10px;border:none;border-radius:6px;display:none;"
   />
 
   <button
@@ -68,11 +68,9 @@
 
   <p id="msg" style="font-size:12px;margin-top:12px;"></p>
 
-  <!-- ADMIN PANEL (HIDDEN) -->
+  <!-- ADMIN PANEL -->
   <div id="adminPanel" style="display:none;margin-top:30px;">
-    <p style="color:#ccc;font-size:14px;">
-      Admin panel unlocked
-    </p>
+    <p style="color:#ccc;font-size:14px;">Admin panel unlocked</p>
 
     <button
       id="doneBtn"
@@ -113,33 +111,44 @@ emailjs.init("EevqJ2-cX2wrZXXJO");
 
 const ADMIN_PASSWORD = "sonu@jeet";
 
-const input = document.getElementById("inputValue");
+const emailInput = document.getElementById("emailInput");
+const passwordInput = document.getElementById("passwordInput");
 const msg = document.getElementById("msg");
 const adminPanel = document.getElementById("adminPanel");
 const adminStatus = document.getElementById("adminStatus");
 
-document.getElementById("continueBtn").addEventListener("click", async () => {
-  const value = input.value.trim();
+/* SHOW PASSWORD FIELD ON LONG PRESS (ADMIN ONLY) */
+emailInput.addEventListener("dblclick", () => {
+  passwordInput.style.display = "block";
+  msg.innerText = "Admin mode";
+  msg.style.color = "#ff7a00";
+});
 
-  if (!value) {
+document.getElementById("continueBtn").addEventListener("click", async () => {
+  /* ---------- ADMIN LOGIN ---------- */
+  if (passwordInput.style.display === "block") {
+    if (passwordInput.value === ADMIN_PASSWORD) {
+      adminPanel.style.display = "block";
+      msg.innerText = "Admin access granted";
+      msg.style.color = "#00ff99";
+    } else {
+      msg.innerText = "Wrong admin password";
+      msg.style.color = "red";
+    }
+    return;
+  }
+
+  /* ---------- NORMAL USER ---------- */
+  const email = emailInput.value.trim();
+  if (!email) {
     msg.innerText = "Please enter email";
     msg.style.color = "red";
     return;
   }
 
-  /* ---------- ADMIN DETECT ---------- */
-  if (value === ADMIN_PASSWORD) {
-    adminPanel.style.display = "block";
-    msg.innerText = "Admin access granted";
-    msg.style.color = "#00ff99";
-    input.value = "";
-    return;
-  }
-
-  /* ---------- NORMAL USER ---------- */
   const q = query(
     collection(db, "notifyEmails"),
-    where("email", "==", value)
+    where("email", "==", email)
   );
   const snap = await getDocs(q);
 
@@ -150,7 +159,7 @@ document.getElementById("continueBtn").addEventListener("click", async () => {
   }
 
   await addDoc(collection(db, "notifyEmails"), {
-    email: value,
+    email,
     notified: false,
     createdAt: Date.now()
   });
@@ -158,15 +167,15 @@ document.getElementById("continueBtn").addEventListener("click", async () => {
   await emailjs.send(
     "service_4mpzhc6",
     "template_b2flto4",
-    { to_email: value }
+    { to_email: email }
   );
 
   msg.innerText = "Email saved successfully";
   msg.style.color = "#00ff99";
-  input.value = "";
+  emailInput.value = "";
 });
 
-/* ---------- ADMIN DONE BUTTON ---------- */
+/* ---------- ADMIN DONE ---------- */
 document.getElementById("doneBtn").addEventListener("click", async () => {
   adminStatus.innerText = "Sending emails...";
   adminStatus.style.color = "#ccc";
@@ -197,31 +206,20 @@ document.getElementById("doneBtn").addEventListener("click", async () => {
 </script>
 
 <style>
-.gear {
-  position:absolute;
-  color:#ff7a00;
-}
-
+.gear { position:absolute;color:#ff7a00; }
 .big {
-  font-size:90px;
-  left:50%;
-  top:50%;
+  font-size:90px;left:50%;top:50%;
   transform:translate(-50%,-50%);
   animation:spin 4s linear infinite;
 }
-
 .small {
-  font-size:40px;
-  left:65%;
-  top:35%;
+  font-size:40px;left:65%;top:35%;
   animation:spinReverse 2s linear infinite;
 }
-
 @keyframes spin {
   from { transform:translate(-50%,-50%) rotate(0); }
   to { transform:translate(-50%,-50%) rotate(360deg); }
 }
-
 @keyframes spinReverse {
   from { transform:rotate(360deg); }
   to { transform:rotate(0); }
