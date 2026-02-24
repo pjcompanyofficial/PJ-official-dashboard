@@ -211,14 +211,30 @@ document.addEventListener("DOMContentLoaded", async () => {
       const snap = await getDocs(collection(db, "notifyEmails"));
       let sentCount = 0;
 
-      for (const d of snap.docs) {
-        const data = d.data();
-        if (data.notified === true) continue;
+      function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
-        // ensure EmailJS is present
-        if (typeof window.emailjs === "undefined") {
-          throw new Error("EmailJS not loaded");
-        }
+for (const d of snap.docs) {
+  const data = d.data();
+
+  // agar pehle se notify ho chuka hai to skip
+  if (data.notified === true) continue;
+
+  await emailjs.send(
+    "service_4mpzhc6",
+    "template_b2flto4",
+    { to_email: data.email }
+  );
+
+  // optional: agar tum flag use kar rahe ho
+  // await updateDoc(doc(db, "notifyEmails", d.id), {
+  //   notified: true
+  // });
+
+  // 🔴 YAHI MAIN FIX HAI
+  await sleep(2000); // 2 second gap
+}
 
         try {
           await window.emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, { to_email: data.email });
