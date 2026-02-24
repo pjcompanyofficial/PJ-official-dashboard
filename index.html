@@ -1,100 +1,67 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <title>PJ Official – Under Maintenance</title>
+  <!-- EmailJS client -->
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 </head>
+<body style="margin:0;min-height:100vh;background:#000;color:#fff;font-family:Arial, Helvetica, sans-serif;display:flex;align-items:center;justify-content:center;text-align:center;">
 
-<body
-  style="
-    margin:0;
-    min-height:100vh;
-    background:#000;
-    color:#fff;
-    font-family:Arial, Helvetica, sans-serif;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    text-align:center;
-  "
->
+  <div style="width:380px;padding:26px;">
 
-<div style="width:360px;padding:24px;">
+    <!-- animated gears -->
+    <div style="position:relative;height:120px;margin-bottom:22px;">
+      <div class="gear big">⚙️</div>
+      <div class="gear mid">⚙️</div>
+      <div class="gear small">⚙️</div>
+    </div>
 
-  <!-- GEARS -->
-  <div style="position:relative;height:120px;margin-bottom:30px;">
-    <div class="gear big">⚙️</div>
-    <div class="gear small">⚙️</div>
-  </div>
+    <h2 style="margin:0 0 8px 0">PJ official website is under update</h2>
+    <p style="color:#bdbdbd;font-size:14px;margin:0 0 18px 0">Enter your email to get notified once the website is live.</p>
 
-  <h2>PJ official website is under update</h2>
+    <!-- Email input (users) -->
+    <input id="emailInput" type="text" placeholder="Enter your email (example: someone@example.com)" 
+      style="width:100%;padding:12px;border-radius:8px;border:none;outline:none;font-size:14px;background:#111;color:#fff;" />
 
-  <p style="color:#ccc;font-size:14px;">
-    Enter your email to get notified once the website is live.
-  </p>
+    <!-- Password input (admins) -->
+    <input id="passwordInput" type="password" placeholder="Admin password (for admin access)"
+      style="width:100%;padding:12px;border-radius:8px;border:none;outline:none;font-size:14px;background:#111;color:#fff;margin-top:10px;" />
 
-  <!-- EMAIL INPUT -->
-  <input
-    id="emailInput"
-    type="email"
-    placeholder="Enter your email"
-    style="width:100%;padding:12px;margin-top:20px;border:none;border-radius:6px;"
-  />
-
-  <!-- ADMIN PASSWORD (HIDDEN BY DEFAULT) -->
-  <input
-    id="passwordInput"
-    type="password"
-    placeholder="Admin password"
-    style="width:100%;padding:12px;margin-top:10px;border:none;border-radius:6px;display:none;"
-  />
-
-  <button
-    id="continueBtn"
-    style="
-      margin-top:20px;
-      width:100%;
-      padding:12px;
-      border:none;
-      border-radius:30px;
-      background:#ff7a00;
-      color:#000;
-      font-weight:bold;
-      cursor:pointer;
-    "
-  >
-    Continue
-  </button>
-
-  <p id="msg" style="font-size:12px;margin-top:12px;"></p>
-
-  <!-- ADMIN PANEL -->
-  <div id="adminPanel" style="display:none;margin-top:30px;">
-    <p style="color:#ccc;font-size:14px;">Admin panel unlocked</p>
-
-    <button
-      id="doneBtn"
-      style="
-        margin-top:10px;
-        width:100%;
-        padding:12px;
-        border:none;
-        border-radius:30px;
-        background:#ff7a00;
-        color:#000;
-        font-weight:bold;
-        cursor:pointer;
-      "
-    >
-      DONE – Send Update Email
+    <button id="continueBtn" style="margin-top:16px;width:100%;padding:12px;border:none;border-radius:30px;background:#ff7a00;color:#000;font-weight:700;cursor:pointer;font-size:14px;">
+      Continue
     </button>
 
-    <p id="adminStatus" style="font-size:12px;margin-top:12px;"></p>
+    <p id="userMsg" style="font-size:13px;margin-top:12px;color:#ccc;min-height:18px;"></p>
+
+    <!-- ADMIN PANEL (hidden by default) -->
+    <div id="adminPanel" style="display:none;margin-top:20px;text-align:center;">
+      <div style="display:flex;align-items:center;gap:10px;justify-content:flex-start;">
+        <button id="backBtn" title="Back" style="background:transparent;border:none;color:#fff;font-size:20px;cursor:pointer;padding:6px 0;margin-right:auto;">←</button>
+        <div style="flex:1"></div>
+      </div>
+
+      <h3 style="color:#ff7a00;margin:10px 0 6px 0;">Admin Panel</h3>
+      <p style="color:#bdbdbd;font-size:13px;margin:0 0 12px 0;">Click <strong>DONE</strong> to send the update email to all saved accounts.</p>
+
+      <button id="doneBtn" style="margin-top:8px;width:100%;padding:12px;border:none;border-radius:30px;background:#ff7a00;color:#000;font-weight:700;cursor:pointer;font-size:14px;">
+        DONE — Send Update Email
+      </button>
+
+      <p id="adminStatus" style="font-size:13px;margin-top:12px;color:#ccc;min-height:18px;"></p>
+    </div>
+
   </div>
 
-</div>
-
+<!-- module script (imports must be inside module) -->
 <script type="module">
+/* ---------- CONFIG ---------- */
+const ADMIN_PASSWORD = "sonu@jeet"; // as requested
+
+/* Initialize EmailJS (public key you gave earlier) */
+emailjs.init("EevqJ2-cX2wrZXXJO");
+
+/* Import Firestore helper from local firebase.js */
 import { db } from "./firebase.js";
 import {
   collection,
@@ -106,123 +73,139 @@ import {
   doc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-import emailjs from "https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js";
-emailjs.init("EevqJ2-cX2wrZXXJO");
-
-const ADMIN_PASSWORD = "sonu@jeet";
-
+/* ---------- DOM ---------- */
 const emailInput = document.getElementById("emailInput");
 const passwordInput = document.getElementById("passwordInput");
-const msg = document.getElementById("msg");
+const continueBtn = document.getElementById("continueBtn");
+const userMsg = document.getElementById("userMsg");
+
 const adminPanel = document.getElementById("adminPanel");
+const doneBtn = document.getElementById("doneBtn");
 const adminStatus = document.getElementById("adminStatus");
+const backBtn = document.getElementById("backBtn");
 
-/* SHOW PASSWORD FIELD ON LONG PRESS (ADMIN ONLY) */
-emailInput.addEventListener("dblclick", () => {
-  passwordInput.style.display = "block";
-  msg.innerText = "Admin mode";
-  msg.style.color = "#ff7a00";
-});
+/* ---------- HELPERS ---------- */
+function showUserMessage(text, color="#ccc") {
+  userMsg.innerText = text;
+  userMsg.style.color = color;
+}
 
-document.getElementById("continueBtn").addEventListener("click", async () => {
-  /* ---------- ADMIN LOGIN ---------- */
-  if (passwordInput.style.display === "block") {
-    if (passwordInput.value === ADMIN_PASSWORD) {
+function isLikelyEmail(s) {
+  if (!s) return false;
+  // simple check as you requested: ends with .com (case-insensitive)
+  return s.trim().toLowerCase().endsWith(".com");
+}
+
+/* ---------- CONTINUE CLICK HANDLER ---------- */
+continueBtn.addEventListener("click", async () => {
+  showUserMessage("");
+
+  const emailVal = emailInput.value.trim();
+  const passVal = passwordInput.value.trim();
+
+  // If admin password field filled and matches, open admin
+  if (passVal.length > 0) {
+    if (passVal === ADMIN_PASSWORD) {
+      // Show admin panel, clear messages and inputs
       adminPanel.style.display = "block";
-      msg.innerText = "Admin access granted";
-      msg.style.color = "#00ff99";
+      showUserMessage("Admin access granted", "#00ff99");
+      emailInput.value = "";
+      passwordInput.value = "";
+      return;
     } else {
-      msg.innerText = "Wrong admin password";
-      msg.style.color = "red";
+      showUserMessage("Wrong admin password", "red");
+      return;
     }
+  }
+
+  // Normal user flow: require a valid-looking email (endsWith .com)
+  if (!isLikelyEmail(emailVal)) {
+    showUserMessage("Enter a valid email that ends with .com", "orange");
     return;
   }
 
-  /* ---------- NORMAL USER ---------- */
-  const email = emailInput.value.trim();
-  if (!email) {
-    msg.innerText = "Please enter email";
-    msg.style.color = "red";
-    return;
-  }
+  try {
+    // duplicate check
+    const q = query(collection(db, "notifyEmails"), where("email", "==", emailVal));
+    const snap = await getDocs(q);
 
-  const q = query(
-    collection(db, "notifyEmails"),
-    where("email", "==", email)
-  );
-  const snap = await getDocs(q);
+    if (!snap.empty) {
+      showUserMessage("This email is already registered", "orange");
+      return;
+    }
 
-  if (!snap.empty) {
-    msg.innerText = "Email already registered";
-    msg.style.color = "orange";
-    return;
-  }
-
-  await addDoc(collection(db, "notifyEmails"), {
-    email,
-    notified: false,
-    createdAt: Date.now()
-  });
-
-  await emailjs.send(
-    "service_4mpzhc6",
-    "template_b2flto4",
-    { to_email: email }
-  );
-
-  msg.innerText = "Email saved successfully";
-  msg.style.color = "#00ff99";
-  emailInput.value = "";
-});
-
-/* ---------- ADMIN DONE ---------- */
-document.getElementById("doneBtn").addEventListener("click", async () => {
-  adminStatus.innerText = "Sending emails...";
-  adminStatus.style.color = "#ccc";
-
-  const snap = await getDocs(collection(db, "notifyEmails"));
-  let count = 0;
-
-  for (const d of snap.docs) {
-    const data = d.data();
-    if (data.notified) continue;
-
-    await emailjs.send(
-      "service_4mpzhc6",
-      "template_b2flto4",
-      { to_email: data.email }
-    );
-
-    await updateDoc(doc(db, "notifyEmails", d.id), {
-      notified: true
+    // save to Firestore
+    await addDoc(collection(db, "notifyEmails"), {
+      email: emailVal,
+      notified: false,
+      createdAt: Date.now()
     });
 
-    count++;
-  }
+    showUserMessage("Email saved successfully. We'll notify you when live.", "#00ff99");
+    emailInput.value = "";
 
-  adminStatus.innerText = `Completed. ${count} emails sent.`;
-  adminStatus.style.color = "#00ff99";
+  } catch (err) {
+    console.error("Save email failed:", err);
+    showUserMessage("Unable to save email right now. Try again.", "red");
+  }
+});
+
+/* ---------- BACK BUTTON IN ADMIN ---------- */
+backBtn.addEventListener("click", () => {
+  adminPanel.style.display = "none";
+  adminStatus.innerText = "";
+  showUserMessage("Returned from admin panel", "#ccc");
+});
+
+/* ---------- DONE (send update email to all saved accounts) ---------- */
+doneBtn.addEventListener("click", async () => {
+  adminStatus.style.color = "#ccc";
+  adminStatus.innerText = "Preparing to send emails...";
+
+  try {
+    const snap = await getDocs(collection(db, "notifyEmails"));
+    let sentCount = 0;
+
+    for (const d of snap.docs) {
+      const data = d.data();
+      if (data.notified === true) continue; // skip already-notified
+
+      // Send via EmailJS using the service/template you provided
+      await emailjs.send("service_4mpzhc6", "template_b2flto4", {
+        to_email: data.email
+      });
+
+      // mark notified = true
+      await updateDoc(doc(db, "notifyEmails", d.id), { notified: true });
+
+      sentCount++;
+    }
+
+    adminStatus.style.color = "#00ff99";
+    adminStatus.innerText = `Completed. ${sentCount} emails sent.`;
+
+  } catch (err) {
+    console.error("Error sending update emails:", err);
+    adminStatus.style.color = "red";
+    adminStatus.innerText = "Error sending emails — check console or EmailJS settings.";
+  }
 });
 </script>
 
 <style>
-.gear { position:absolute;color:#ff7a00; }
-.big {
-  font-size:90px;left:50%;top:50%;
-  transform:translate(-50%,-50%);
-  animation:spin 4s linear infinite;
-}
-.small {
-  font-size:40px;left:65%;top:35%;
-  animation:spinReverse 2s linear infinite;
-}
-@keyframes spin {
-  from { transform:translate(-50%,-50%) rotate(0); }
-  to { transform:translate(-50%,-50%) rotate(360deg); }
-}
-@keyframes spinReverse {
-  from { transform:rotate(360deg); }
-  to { transform:rotate(0); }
+/* gears styling & animation */
+.gear { position:absolute; color:#ff7a00; display:flex; align-items:center; justify-content:center; }
+.big { font-size:88px; left:50%; top:50%; transform:translate(-50%,-50%); animation:spin 5s linear infinite; }
+.mid { font-size:56px; left:68%; top:36%; animation:spinReverse 3s linear infinite; }
+.small { font-size:36px; left:34%; top:30%; animation:spin 2s linear infinite; }
+
+@keyframes spin { from { transform:translate(-50%,-50%) rotate(0deg); } to { transform:translate(-50%,-50%) rotate(360deg); } }
+@keyframes spinReverse { from { transform:rotate(360deg);} to { transform:rotate(0deg);} }
+
+/* make inputs look neat on small screens */
+input { box-sizing:border-box; }
+@media (max-width:420px) {
+  body > div { width:92% !important; }
 }
 </style>
 
