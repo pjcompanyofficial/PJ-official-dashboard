@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>PJ Automation</title>
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+</head>
+
+<body>
+<script type="module">
+import { db } from "./firebase.js";
+import {
+  collection,
+  getDocs,
+  updateDoc,
+  doc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+emailjs.init("EevqJ2-cX2wrZXXJO");
+
+// check project status
+const status = await fetch("status.json").then(r => r.json());
+if (status.project !== "live") {
+  console.log("Project not live yet");
+  return;
+}
+
+// fetch all emails
+const snap = await getDocs(collection(db, "notifyEmails"));
+
+snap.forEach(async d => {
+  const data = d.data();
+  if (data.notified === true) return;
+
+  // send email
+  await emailjs.send("service_4mpzhc6", "template_b2flto4", {
+    to_email: data.email,
+    title: "PJ Official Website Live",
+    message: "The website has been successfully updated. You can now use it."
+  });
+
+  // mark as notified
+  await updateDoc(doc(db, "notifyEmails", d.id), {
+    notified: true
+  });
+});
+
+console.log("All emails sent successfully");
+</script>
+</body>
+</html>
