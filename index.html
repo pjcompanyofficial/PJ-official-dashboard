@@ -1,1 +1,85 @@
-under construction by PJ official for come soon new version
+<!DOCTYPE html>
+<html>
+<head>
+  <title>PJ Official – Under Maintenance</title>
+</head>
+
+<body style="font-family:sans-serif;text-align:center;padding-top:80px;">
+
+  <!-- GEAR ANIMATION -->
+  <div style="font-size:60px;color:orange;animation:spin 2s linear infinite;">
+    ⚙️ ⚙️ ⚙️
+  </div>
+
+  <h2>PJ official website is under update</h2>
+  <p>
+    Enter your email to get notified once the website is live.
+  </p>
+
+  <input
+    id="email"
+    type="email"
+    placeholder="Enter your email"
+    style="padding:8px;width:250px;"
+  />
+  <br><br>
+
+  <button onclick="saveEmail()" style="padding:8px 16px;">
+    Continue
+  </button>
+
+  <p style="font-size:12px;color:gray;">
+    We will notify you when the update is completed.
+  </p>
+
+<script type="module">
+import { db } from "./firebase.js";
+import {
+  collection,
+  addDoc,
+  query,
+  where,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+async function saveEmail() {
+  const email = document.getElementById("email").value.trim();
+  if (!email) {
+    alert("Please enter a valid email");
+    return;
+  }
+
+  // duplicate check
+  const q = query(
+    collection(db, "notifyEmails"),
+    where("email", "==", email)
+  );
+  const snap = await getDocs(q);
+
+  if (!snap.empty) {
+    alert("Email already registered");
+    return;
+  }
+
+  await addDoc(collection(db, "notifyEmails"), {
+    email: email,
+    notified: false,
+    createdAt: Date.now()
+  });
+
+  alert("Email saved successfully!");
+  document.getElementById("email").value = "";
+}
+
+window.saveEmail = saveEmail;
+</script>
+
+<style>
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+</style>
+
+</body>
+</html>
