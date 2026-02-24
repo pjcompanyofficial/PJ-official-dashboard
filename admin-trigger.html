@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PJ Admin Trigger Panel</title>
+</head>
+
+<body
+  style="
+    margin:0;
+    min-height:100vh;
+    background:#000;
+    color:#fff;
+    font-family:Arial, Helvetica, sans-serif;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  "
+>
+
+<!-- LOGIN BOX -->
+<div id="loginBox" style="width:320px; text-align:center;">
+  <h2 style="color:#ff7a00;">Admin Access</h2>
+
+  <input
+    id="password"
+    type="password"
+    placeholder="Enter admin password"
+    style="
+      width:100%;
+      padding:12px;
+      margin-top:20px;
+      border:none;
+      border-radius:6px;
+      outline:none;
+    "
+  />
+
+  <button
+    onclick="checkPassword()"
+    style="
+      margin-top:20px;
+      width:100%;
+      padding:12px;
+      border:none;
+      border-radius:30px;
+      background:#ff7a00;
+      color:#000;
+      font-weight:bold;
+      cursor:pointer;
+    "
+  >
+    Unlock Panel
+  </button>
+
+  <p id="error" style="color:red; font-size:12px; display:none; margin-top:10px;">
+    Wrong password
+  </p>
+</div>
+
+<!-- ADMIN PANEL -->
+<div
+  id="adminPanel"
+  style="display:none; width:360px; text-align:center;"
+>
+  <h2 style="color:#ff7a00;">PJ Admin Panel</h2>
+
+  <p style="color:#ccc; font-size:14px;">
+    Send update email to all registered users
+  </p>
+
+  <button
+    onclick="sendAllEmails()"
+    style="
+      margin-top:30px;
+      width:100%;
+      padding:14px;
+      border:none;
+      border-radius:30px;
+      background:#ff7a00;
+      color:#000;
+      font-weight:bold;
+      cursor:pointer;
+    "
+  >
+    Send Update Email
+  </button>
+
+  <p id="status" style="font-size:13px; margin-top:15px;"></p>
+</div>
+
+<script type="module">
+/* ---------- PASSWORD LOGIC ---------- */
+function checkPassword() {
+  const pass = document.getElementById("password").value;
+  if (pass === "sonu@jeet") {
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("adminPanel").style.display = "block";
+  } else {
+    document.getElementById("error").style.display = "block";
+  }
+}
+window.checkPassword = checkPassword;
+
+/* ---------- FIREBASE + EMAIL ---------- */
+import { db } from "./firebase.js";
+import {
+  collection,
+  getDocs,
+  updateDoc,
+  doc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+import emailjs from "https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js";
+
+emailjs.init("EevqJ2-cX2wrZXXJO");
+
+async function sendAllEmails() {
+  const statusEl = document.getElementById("status");
+  statusEl.style.color = "#ccc";
+  statusEl.innerText = "Sending emails...";
+
+  const snap = await getDocs(collection(db, "notifyEmails"));
+
+  let count = 0;
+
+  for (const d of snap.docs) {
+    const data = d.data();
+    if (data.notified) continue;
+
+    await emailjs.send(
+      "service_4mpzhc6",
+      "template_b2flto4",
+      {
+        to_email: data.email
+      }
+    );
+
+    await updateDoc(doc(db, "notifyEmails", d.id), {
+      notified: true
+    });
+
+    count++;
+  }
+
+  statusEl.style.color = "#00ff99";
+  statusEl.innerText = `Completed. ${count} emails sent.`;
+}
+
+window.sendAllEmails = sendAllEmails;
+</script>
+
+</body>
+</html>
