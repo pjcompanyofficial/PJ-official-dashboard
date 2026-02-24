@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>PJ Official – Under Maintenance</title>
 </head>
 
@@ -9,8 +9,8 @@
   style="
     margin:0;
     min-height:100vh;
-    background:#000000;
-    color:#ffffff;
+    background:#000;
+    color:#fff;
     font-family:Arial, Helvetica, sans-serif;
     display:flex;
     align-items:center;
@@ -19,142 +19,212 @@
   "
 >
 
-  <div style="max-width:420px; width:100%; padding:24px;">
+<div style="width:360px;padding:24px;">
 
-    <!-- GEAR ANIMATION (MIXED CONCEPT) -->
-    <div style="position:relative; height:130px; margin-bottom:30px;">
-      <div class="gear big-gear">⚙️</div>
-      <div class="gear mid-gear">⚙️</div>
-      <div class="gear small-gear">⚙️</div>
-    </div>
+  <!-- GEARS -->
+  <div style="position:relative;height:120px;margin-bottom:30px;">
+    <div class="gear big">⚙️</div>
+    <div class="gear small">⚙️</div>
+  </div>
 
-    <h2 style="margin-bottom:10px;">
-      PJ official website is under update
-    </h2>
+  <h2>PJ official website is under update</h2>
 
-    <p style="color:#cccccc; font-size:14px; line-height:1.6;">
-      Enter your email to get notified once the website is live.
+  <p style="color:#ccc;font-size:14px;">
+    Enter your email to get notified once the website is live.
+  </p>
+
+  <!-- SINGLE INPUT -->
+  <input
+    id="inputValue"
+    type="text"
+    placeholder="Enter your email"
+    style="
+      width:100%;
+      padding:12px;
+      margin-top:20px;
+      border:none;
+      border-radius:6px;
+      outline:none;
+      font-size:14px;
+    "
+  />
+
+  <button
+    id="continueBtn"
+    style="
+      margin-top:20px;
+      width:100%;
+      padding:12px;
+      border:none;
+      border-radius:30px;
+      background:#ff7a00;
+      color:#000;
+      font-weight:bold;
+      cursor:pointer;
+    "
+  >
+    Continue
+  </button>
+
+  <p id="msg" style="font-size:12px;margin-top:12px;"></p>
+
+  <!-- ADMIN PANEL (HIDDEN) -->
+  <div id="adminPanel" style="display:none;margin-top:30px;">
+    <p style="color:#ccc;font-size:14px;">
+      Admin panel unlocked
     </p>
 
-    <input
-      id="email"
-      type="email"
-      placeholder="Enter your email"
-      style="
-        width:100%;
-        padding:12px;
-        margin-top:20px;
-        border-radius:6px;
-        border:none;
-        outline:none;
-        font-size:14px;
-      "
-    />
-
     <button
-      onclick="saveEmail()"
+      id="doneBtn"
       style="
-        margin-top:20px;
-        padding:12px;
+        margin-top:10px;
         width:100%;
+        padding:12px;
         border:none;
         border-radius:30px;
         background:#ff7a00;
-        color:#000000;
+        color:#000;
         font-weight:bold;
-        font-size:14px;
         cursor:pointer;
       "
     >
-      Continue
+      DONE – Send Update Email
     </button>
 
-    <p style="font-size:12px; color:#888888; margin-top:16px;">
-      We will notify you when the update is completed.
-    </p>
-
+    <p id="adminStatus" style="font-size:12px;margin-top:12px;"></p>
   </div>
+
+</div>
 
 <script type="module">
 import { db } from "./firebase.js";
 import {
   collection,
   addDoc,
+  getDocs,
   query,
   where,
-  getDocs
+  updateDoc,
+  doc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-async function saveEmail() {
-  const email = document.getElementById("email").value.trim();
-  if (!email) {
-    alert("Please enter a valid email");
+import emailjs from "https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js";
+emailjs.init("EevqJ2-cX2wrZXXJO");
+
+const ADMIN_PASSWORD = "sonu@jeet";
+
+const input = document.getElementById("inputValue");
+const msg = document.getElementById("msg");
+const adminPanel = document.getElementById("adminPanel");
+const adminStatus = document.getElementById("adminStatus");
+
+document.getElementById("continueBtn").addEventListener("click", async () => {
+  const value = input.value.trim();
+
+  if (!value) {
+    msg.innerText = "Please enter email";
+    msg.style.color = "red";
     return;
   }
 
+  /* ---------- ADMIN DETECT ---------- */
+  if (value === ADMIN_PASSWORD) {
+    adminPanel.style.display = "block";
+    msg.innerText = "Admin access granted";
+    msg.style.color = "#00ff99";
+    input.value = "";
+    return;
+  }
+
+  /* ---------- NORMAL USER ---------- */
   const q = query(
     collection(db, "notifyEmails"),
-    where("email", "==", email)
+    where("email", "==", value)
   );
   const snap = await getDocs(q);
 
   if (!snap.empty) {
-    alert("Email already registered");
+    msg.innerText = "Email already registered";
+    msg.style.color = "orange";
     return;
   }
 
   await addDoc(collection(db, "notifyEmails"), {
-    email: email,
+    email: value,
     notified: false,
     createdAt: Date.now()
   });
 
-  alert("Email saved successfully!");
-  document.getElementById("email").value = "";
-}
+  await emailjs.send(
+    "service_4mpzhc6",
+    "template_b2flto4",
+    { to_email: value }
+  );
 
-window.saveEmail = saveEmail;
+  msg.innerText = "Email saved successfully";
+  msg.style.color = "#00ff99";
+  input.value = "";
+});
+
+/* ---------- ADMIN DONE BUTTON ---------- */
+document.getElementById("doneBtn").addEventListener("click", async () => {
+  adminStatus.innerText = "Sending emails...";
+  adminStatus.style.color = "#ccc";
+
+  const snap = await getDocs(collection(db, "notifyEmails"));
+  let count = 0;
+
+  for (const d of snap.docs) {
+    const data = d.data();
+    if (data.notified) continue;
+
+    await emailjs.send(
+      "service_4mpzhc6",
+      "template_b2flto4",
+      { to_email: data.email }
+    );
+
+    await updateDoc(doc(db, "notifyEmails", d.id), {
+      notified: true
+    });
+
+    count++;
+  }
+
+  adminStatus.innerText = `Completed. ${count} emails sent.`;
+  adminStatus.style.color = "#00ff99";
+});
 </script>
 
 <style>
 .gear {
   position:absolute;
   color:#ff7a00;
-  display:flex;
-  align-items:center;
-  justify-content:center;
 }
 
-.big-gear {
+.big {
   font-size:90px;
   left:50%;
   top:50%;
-  transform:translate(-50%, -50%);
+  transform:translate(-50%,-50%);
   animation:spin 4s linear infinite;
 }
 
-.mid-gear {
-  font-size:60px;
+.small {
+  font-size:40px;
   left:65%;
   top:35%;
-  animation:spin-reverse 2.5s linear infinite;
-}
-
-.small-gear {
-  font-size:40px;
-  left:38%;
-  top:30%;
-  animation:spin 2s linear infinite;
+  animation:spinReverse 2s linear infinite;
 }
 
 @keyframes spin {
-  from { transform:translate(-50%, -50%) rotate(0deg); }
-  to   { transform:translate(-50%, -50%) rotate(360deg); }
+  from { transform:translate(-50%,-50%) rotate(0); }
+  to { transform:translate(-50%,-50%) rotate(360deg); }
 }
 
-@keyframes spin-reverse {
+@keyframes spinReverse {
   from { transform:rotate(360deg); }
-  to   { transform:rotate(0deg); }
+  to { transform:rotate(0); }
 }
 </style>
 
